@@ -173,12 +173,12 @@ titles_th -v
 **`-t` オプションの値:**
 
 *   **Kaguya アーカイブ:**
-    *   `0`: 東方永夜抄 (Imperishable Night)
-    *   `1`: 弾幕アマノジャク (Shoot the Bullet / Impossible Spell Card)
+    *   `0`: 東方永夜抄
+    *   `1`: 弾幕アマノジャク
 *   **Kanako アーカイブ:**
-    *   `0`: 東方風神録 (Mountain of Faith) / 東方地霊殿 (Subterranean Animism)
-    *   `1`: 東方星蓮船 (Undefined Fantastic Object) / ダブルスポイラー (Double Spoiler) / 妖精大戦争 (Fairy Wars)
-    *   `2`: 東方神霊廟 (Ten Desires) 以降の全作品 (TH13-TH20)
+    *   `0`: 東方文花帖 / 東方風神録 / 東方地霊殿
+    *   `1`: 東方星蓮船 / ダブルスポイラー / 妖精大戦争
+    *   `2`: 東方神霊廟 以降の全作品
 
 ## 対応ゲーム・ファイル形式
 
@@ -188,7 +188,7 @@ titles_th -v
 | 東方妖々夢 (TH07) | `th07*.dat` | Yumemi | - | 自動検出可能 |
 | 東方永夜抄 (TH08) | `th08*.dat` | Kaguya | `0` | 自動検出可能 (ファイル名による) |
 | 弾幕アマノジャク (TH08.5?) | `th085*.dat` | Kaguya | `1` | 自動検出可能 (ファイル名による) |
-| 東方文花帖 (TH09.5) | `th095*.dat` | Marisa | - | 自動検出可能 |
+| 東方文花帖 (TH09.5) | `th095*.dat` | Kanako | `0` | 自動検出可能 (ファイル名による) |
 | 東方風神録 (TH10) | `th10*.dat` | Kanako | `0` | 自動検出可能 (ファイル名による) |
 | 東方地霊殿 (TH11) | `th11*.dat` | Kanako | `0` | 自動検出可能 (ファイル名による) |
 | 東方星蓮船 (TH12) | `th12*.dat` | Kanako | `1` | 自動検出可能 (ファイル名による) |
