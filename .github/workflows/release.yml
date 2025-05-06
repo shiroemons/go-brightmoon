@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*-brightmoon'
+      - 'v*-titles_th'
+
+permissions:
+  contents: write
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+          cache: true
+      
+      - name: Run GoReleaser for brightmoon
+        uses: goreleaser/goreleaser-action@v5
+        if: endsWith(github.ref, '-brightmoon')
+        with:
+          distribution: goreleaser
+          version: v2.9.0
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Run GoReleaser for titles_th
+        uses: goreleaser/goreleaser-action@v5
+        if: endsWith(github.ref, '-titles_th')
+        with:
+          distribution: goreleaser
+          version: v2.9.0
+          args: release --config .goreleaser.titles_th.yaml --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
