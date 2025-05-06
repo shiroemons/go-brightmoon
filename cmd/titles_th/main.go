@@ -159,7 +159,7 @@ func openArchiveAndExtract(archivePath string, archiveType int, targetFiles []st
 				} else if gameNum >= 10 {
 					// 10以降: Kanako形式
 					var typeNum int
-					if gameNum >= 10 && gameNum <= 11 {
+					if gameNum >= 10 && gameNum <= 11 || gameNum == 95 {
 						typeNum = 0
 					} else if gameNum == 12 {
 						typeNum = 1

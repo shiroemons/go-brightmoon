@@ -294,9 +294,7 @@ func guessArchiveInfoFromName(filename string) (expectedFormatName string, expec
 	case "th085": // 弾幕アマノジャクはファイル名パターンが異なる場合があるため注意
 		expectedFormatName = "Kaguya"
 		expectedSubType = 1 // Shoot the Bullet / Impossible Spell Card
-	case "th095":
-		expectedFormatName = "Marisa"
-	case "th10", "th11":
+	case "th095", "th10", "th11":
 		expectedFormatName = "Kanako"
 		expectedSubType = 0 // MoF / SA
 	case "th12", "th125", "th128":
