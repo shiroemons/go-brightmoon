@@ -31,7 +31,7 @@ archives:
     name_template: "{{ .ProjectName }}-{{.Major}}.{{.Minor}}.{{.Patch}}_{{ .Os }}_{{ .Arch }}"
     files:
       - src: README.titles_th.md
-        dst: README.md
+        dst: README.txt
 
 checksum:
   name_template: "{{ .ProjectName }}_{{.Major}}.{{.Minor}}.{{.Patch}}_checksums.txt"

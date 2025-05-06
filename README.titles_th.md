@@ -3,7 +3,7 @@
 ## 使い方
 
 1. 東方Projectのゲームフォルダ（thXX.datやthbgm.datが存在するフォルダ）に、`titles_th.exe`を配置します
-   - 体験版の場合は、thXXtr.datやthbgmtr.datがあるフォルダに配置してください
+   - 体験版の場合は、thXXtr.datやthbgm_tr.datがあるフォルダに配置してください
 
 2. `titles_th.exe`をダブルクリックして実行します
    - セキュリティ警告が表示されますが、「実行」ボタンをクリックしてください
