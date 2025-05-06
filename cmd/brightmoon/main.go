@@ -14,6 +14,7 @@ import (
 )
 
 var (
+	version      = "0.0.1"
 	extractFlag  = flag.Bool("x", false, "extract files")
 	listFlag     = flag.Bool("l", false, "list files")
 	outputDir    = flag.String("o", ".", "output directory")
@@ -21,6 +22,7 @@ var (
 	debugFlag    = flag.Bool("d", false, "debug mode (show more info)")
 	parallelFlag = flag.Bool("p", false, "use parallel extraction")
 	workerCount  = flag.Int("w", 4, "number of worker threads for parallel extraction")
+	versionFlag  = flag.Bool("v", false, "show version information")
 )
 
 // コールバック関数
@@ -31,6 +33,12 @@ func callback(msg string, user interface{}) bool {
 
 func main() {
 	flag.Parse()
+
+	// バージョン情報の表示
+	if *versionFlag {
+		fmt.Printf("brightmoon version %s\n", version)
+		os.Exit(0)
+	}
 
 	// 引数チェック
 	args := flag.Args()

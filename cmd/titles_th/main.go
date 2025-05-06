@@ -25,10 +25,12 @@ import (
 )
 
 var (
+	version     = "0.0.1"
 	archivePath string
 	useType     = flag.Int("t", -1, "archive type (e.g., 0 for Imperishable Night, see README for details). If omitted, auto-detection is attempted.")
 	outputDir   = flag.String("o", ".", "output directory for the generated files")
 	debugMode   bool
+	showVersion bool
 
 	// 正規表現パターンを事前コンパイル
 	datFilePattern = regexp.MustCompile(`^th\d+(?:tr)?\.dat$`)
@@ -43,6 +45,10 @@ func init() {
 	// -d と -debug の両方でデバッグモードを有効にする
 	flag.BoolVar(&debugMode, "debug", false, "enable debug output")
 	flag.BoolVar(&debugMode, "d", false, "enable debug output (shorthand)")
+
+	// バージョン表示フラグ
+	flag.BoolVar(&showVersion, "version", false, "show version information")
+	flag.BoolVar(&showVersion, "v", false, "show version information (shorthand)")
 }
 
 type Record struct {
@@ -661,14 +667,20 @@ func generateOutputFilename(inputPath string) string {
 }
 
 func main() {
+	flag.Parse()
+
+	// バージョン情報の表示
+	if showVersion {
+		fmt.Printf("titles_th version %s\n", version)
+		os.Exit(0)
+	}
+
 	var (
 		err       error
 		thfmt     []byte
 		musiccmt  string
 		inputFile string // 入力ファイル名を保存するための変数
 	)
-
-	flag.Parse()
 
 	// アーカイブが指定されている場合
 	if archivePath != "" {
