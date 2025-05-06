@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	version      = "0.0.1"
+	version      = "0.0.2"
 	extractFlag  = flag.Bool("x", false, "extract files")
 	listFlag     = flag.Bool("l", false, "list files")
 	outputDir    = flag.String("o", ".", "output directory")

@@ -24,6 +24,28 @@ jobs:
           go-version: '1.24'
           cache: true
       
+      - name: Set PREVIOUS_TAG for brightmoon
+        if: endsWith(github.ref, '-brightmoon')
+        run: |
+          CURRENT_TAG=${GITHUB_REF#refs/tags/}
+          PREVIOUS_TAG=$(git tag --sort=-creatordate | grep "\-brightmoon" | sed -n 2p)
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found for brightmoon"
+            PREVIOUS_TAG=""
+          fi
+          echo "PREVIOUS_TAG=$PREVIOUS_TAG" >> $GITHUB_ENV
+      
+      - name: Set PREVIOUS_TAG for titles-th
+        if: endsWith(github.ref, '-titles-th')
+        run: |
+          CURRENT_TAG=${GITHUB_REF#refs/tags/}
+          PREVIOUS_TAG=$(git tag --sort=-creatordate | grep "\-titles-th" | sed -n 2p)
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found for titles-th"
+            PREVIOUS_TAG=""
+          fi
+          echo "PREVIOUS_TAG=$PREVIOUS_TAG" >> $GITHUB_ENV
+      
       - name: Run GoReleaser for brightmoon
         uses: goreleaser/goreleaser-action@v5
         if: endsWith(github.ref, '-brightmoon')
@@ -33,6 +55,8 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIOUS_TAG: ${{ env.PREVIOUS_TAG }}
+          GORELEASER_PREVIOUS_TAG: ${{ env.PREVIOUS_TAG }}
           
       - name: Run GoReleaser for titles-th
         uses: goreleaser/goreleaser-action@v5
@@ -42,4 +66,6 @@ jobs:
           version: v2.9.0
           args: release --config .goreleaser.titles-th.yaml --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIOUS_TAG: ${{ env.PREVIOUS_TAG }}
+          GORELEASER_PREVIOUS_TAG: ${{ env.PREVIOUS_TAG }} 

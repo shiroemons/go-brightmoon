@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	version     = "0.0.1"
+	version     = "0.0.2"
 	archivePath string
 	useType     = flag.Int("t", -1, "archive type (e.g., 0 for Imperishable Night, see README for details). If omitted, auto-detection is attempted.")
 	outputDir   = flag.String("o", ".", "output directory for the generated files")
