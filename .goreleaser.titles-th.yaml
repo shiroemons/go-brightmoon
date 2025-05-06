@@ -1,0 +1,52 @@
+# .goreleaser.titles-th.yaml
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+project_name: titles-th
+
+builds:
+  - main: ./cmd/titles_th
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+      - 386
+
+archives:
+  - id: default
+    formats:
+      - zip
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+      - goos: darwin
+        formats: [zip]
+      - goos: linux
+        formats: [tar.gz]
+    name_template: "{{ .ProjectName }}-{{.Major}}.{{.Minor}}.{{.Patch}}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - titles_th*.txt
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{.Major}}.{{.Minor}}.{{.Patch}}_checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-dev.{{ .ShortCommit }}"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - '^chore:' 
+
+release:
+  name_template: "v{{.Major}}.{{.Minor}}.{{.Patch}}-titles-th"

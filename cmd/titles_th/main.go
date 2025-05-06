@@ -644,7 +644,7 @@ func saveToFile(outputPath string, content string) error {
 	// UTF-8 BOMを書き込む
 	utf8bom := []byte{0xEF, 0xBB, 0xBF}
 	if _, err := file.Write(utf8bom); err != nil {
-		return fmt.Errorf("BOMの書き込みに失敗しました: %w", err)
+		return fmt.Errorf("bomの書き込みに失敗しました: %w", err)
 	}
 
 	// 内容を書き込む
