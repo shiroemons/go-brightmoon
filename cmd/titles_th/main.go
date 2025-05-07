@@ -776,12 +776,12 @@ func main() {
 			fmt.Fprintf(os.Stderr, "警告: 補足情報の読み込みに失敗しました: %v\n", additionalInfo.Error)
 		}
 
-		// アーカイブが_tr版かどうか判定
-		isTrArchive := strings.Contains(strings.ToLower(filepath.Base(archivePath)), "tr")
+		// アーカイブが体験版かどうか判定
+		isTrialVersion := strings.Contains(strings.ToLower(filepath.Base(archivePath)), "tr")
 
-		// 検索するファイル名（_tr版アーカイブの場合は_tr版ファイルのみを検索）
+		// 検索するファイル名（体験版アーカイブの場合は _trファイルのみを検索）
 		var targetFiles []string
-		if isTrArchive {
+		if isTrialVersion {
 			targetFiles = []string{"thbgm_tr.fmt", "musiccmt_tr.txt"}
 		} else {
 			targetFiles = []string{"thbgm.fmt", "musiccmt.txt"}
@@ -795,8 +795,8 @@ func main() {
 		}
 
 		// データの取得
-		if isTrArchive {
-			// _tr版アーカイブの場合
+		if isTrialVersion {
+			// 体験版アーカイブの場合
 			if data, ok := fileData["thbgm_tr.fmt"]; ok && len(data) > 0 {
 				thfmt = data
 				if cmtData, ok := fileData["musiccmt_tr.txt"]; ok {
@@ -810,7 +810,7 @@ func main() {
 				os.Exit(1)
 			}
 		} else {
-			// 通常版アーカイブの場合
+			// 製品版アーカイブの場合
 			if data, ok := fileData["thbgm.fmt"]; ok && len(data) > 0 {
 				thfmt = data
 				if cmtData, ok := fileData["musiccmt.txt"]; ok {
@@ -843,12 +843,12 @@ func main() {
 				fmt.Fprintf(os.Stderr, "警告: 補足情報の読み込みに失敗しました: %v\n", additionalInfo.Error)
 			}
 
-			// アーカイブが_tr版かどうか判定
-			isTrArchive := strings.Contains(strings.ToLower(filepath.Base(datFile)), "tr")
+			// アーカイブが体験版かどうか判定
+			isTrialVersion := strings.Contains(strings.ToLower(filepath.Base(datFile)), "tr")
 
-			// 検索するファイル名（_tr版アーカイブの場合は_tr版ファイルのみを検索）
+			// 検索するファイル名（体験版アーカイブの場合は _trファイルのみを検索）
 			var targetFiles []string
-			if isTrArchive {
+			if isTrialVersion {
 				targetFiles = []string{"thbgm_tr.fmt", "musiccmt_tr.txt"}
 			} else {
 				targetFiles = []string{"thbgm.fmt", "musiccmt.txt"}
@@ -862,8 +862,8 @@ func main() {
 			}
 
 			// データの取得
-			if isTrArchive {
-				// _tr版アーカイブの場合
+			if isTrialVersion {
+				// 体験版アーカイブの場合
 				if data, ok := fileData["thbgm_tr.fmt"]; ok && len(data) > 0 {
 					thfmt = data
 					if cmtData, ok := fileData["musiccmt_tr.txt"]; ok {
@@ -877,7 +877,7 @@ func main() {
 					os.Exit(1)
 				}
 			} else {
-				// 通常版アーカイブの場合
+				// 製品版アーカイブの場合
 				if data, ok := fileData["thbgm.fmt"]; ok && len(data) > 0 {
 					thfmt = data
 					if cmtData, ok := fileData["musiccmt.txt"]; ok {
@@ -903,7 +903,7 @@ func main() {
 				check(err)
 				musiccmt = string(musiccmtBytes)
 			} else if fileExists("thbgm_tr.fmt") && fileExists("musiccmt_tr.txt") {
-				// TR版のファイルを使用する場合
+				// 体験版のファイルを使用する場合
 				inputFile = "thbgm_tr" // 特別な名前を使用
 
 				thfmt, err = os.ReadFile("thbgm_tr.fmt")
