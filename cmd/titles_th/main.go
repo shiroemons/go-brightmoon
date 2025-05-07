@@ -666,6 +666,89 @@ func generateOutputFilename(inputPath string) string {
 	return fmt.Sprintf("titles_%s.txt", baseName)
 }
 
+// AdditionalInfo は補足情報を保持する構造体
+type AdditionalInfo struct {
+	HasAdditionalInfo bool
+	TitleInfo         string
+	DisplayTitle      string
+	IsTrialVersion    bool
+	Error             error
+}
+
+// checkAdditionalInfo は補足情報の存在をチェックします
+func checkAdditionalInfo(archivePath string) AdditionalInfo {
+	// アーカイブと同じディレクトリを取得
+	dir := filepath.Dir(archivePath)
+
+	// readme.txtのパス
+	readmePath := filepath.Join(dir, "readme.txt")
+
+	// thbgm.datとthbgm_tr.datのパス
+	thbgmPath := filepath.Join(dir, "thbgm.dat")
+	thbgmTrPath := filepath.Join(dir, "thbgm_tr.dat")
+
+	// readme.txtの存在チェック
+	if !fileExists(readmePath) {
+		return AdditionalInfo{HasAdditionalInfo: false}
+	}
+
+	// thbgm.datまたはthbgm_tr.datの存在チェック
+	if !fileExists(thbgmPath) && !fileExists(thbgmTrPath) {
+		return AdditionalInfo{HasAdditionalInfo: false}
+	}
+
+	// readme.txtを読み込む
+	readmeData, err := os.ReadFile(readmePath)
+	if err != nil {
+		return AdditionalInfo{Error: fmt.Errorf("readme.txtの読み込みに失敗しました: %w", err)}
+	}
+
+	// ShiftJISからUTF-8に変換
+	readmeText, err := FromShiftJIS(string(readmeData))
+	if err != nil {
+		return AdditionalInfo{Error: fmt.Errorf("readme.txtの文字コード変換に失敗しました: %w", err)}
+	}
+
+	// 2行目を取得
+	lines := strings.Split(readmeText, "\n")
+	if len(lines) < 2 {
+		return AdditionalInfo{HasAdditionalInfo: false}
+	}
+
+	// 2行目の最初の文字が○かチェック
+	secondLine := strings.TrimSpace(lines[1])
+	if !strings.HasPrefix(secondLine, "○") {
+		return AdditionalInfo{HasAdditionalInfo: false}
+	}
+
+	// ○以降の文字列を取得
+	title := strings.TrimPrefix(secondLine, "○")
+
+	// 使用するthbgm.datのパスを決定
+	var thbgmFilePath string
+	if fileExists(thbgmPath) {
+		thbgmFilePath = thbgmPath
+	} else {
+		thbgmFilePath = thbgmTrPath
+	}
+
+	// 体験版かどうかチェック
+	isTrialVersion := strings.Contains(title, " 体験版")
+
+	// 体験版の場合は「 体験版」の表記を除外
+	displayTitle := title
+	if isTrialVersion {
+		displayTitle = strings.Replace(title, " 体験版", "", 1)
+	}
+
+	return AdditionalInfo{
+		HasAdditionalInfo: true,
+		TitleInfo:         fmt.Sprintf("@%s,%s", thbgmFilePath, title),
+		DisplayTitle:      displayTitle,
+		IsTrialVersion:    isTrialVersion,
+	}
+}
+
 func main() {
 	flag.Parse()
 
@@ -686,6 +769,12 @@ func main() {
 	if archivePath != "" {
 		debugPrintf("アーカイブファイル %s からデータを読み込みます...\n", archivePath)
 		inputFile = archivePath
+
+		// 補足情報の存在チェックとタイトル取得
+		additionalInfo := checkAdditionalInfo(archivePath)
+		if additionalInfo.Error != nil {
+			fmt.Fprintf(os.Stderr, "警告: 補足情報の読み込みに失敗しました: %v\n", additionalInfo.Error)
+		}
 
 		// アーカイブが_tr版かどうか判定
 		isTrArchive := strings.Contains(strings.ToLower(filepath.Base(archivePath)), "tr")
@@ -747,6 +836,12 @@ func main() {
 			// .datファイルが見つかった場合、そこからデータを抽出
 			debugPrintf("自動検出したアーカイブファイル %s からデータを読み込みます...\n", filepath.Base(datFile))
 			inputFile = datFile
+
+			// 補足情報の存在チェックとタイトル取得
+			additionalInfo := checkAdditionalInfo(datFile)
+			if additionalInfo.Error != nil {
+				fmt.Fprintf(os.Stderr, "警告: 補足情報の読み込みに失敗しました: %v\n", additionalInfo.Error)
+			}
 
 			// アーカイブが_tr版かどうか判定
 			isTrArchive := strings.Contains(strings.ToLower(filepath.Base(datFile)), "tr")
@@ -881,6 +976,23 @@ func main() {
 
 	// 曲データの出力内容を構築
 	var outputBuilder strings.Builder
+
+	// 補足情報の存在チェックとタイトル取得
+	additionalInfo := checkAdditionalInfo(inputFile)
+	if additionalInfo.Error != nil {
+		fmt.Fprintf(os.Stderr, "警告: 補足情報の読み込みに失敗しました: %v\n", additionalInfo.Error)
+	}
+
+	// 補足情報が存在する場合のみタイトル情報を出力
+	if additionalInfo.HasAdditionalInfo {
+		if additionalInfo.IsTrialVersion {
+			outputBuilder.WriteString(fmt.Sprintf("#「%s」体験版曲データ\n", additionalInfo.DisplayTitle))
+		} else {
+			outputBuilder.WriteString(fmt.Sprintf("#「%s」製品版曲データ\n", additionalInfo.DisplayTitle))
+		}
+		outputBuilder.WriteString("#デフォルトのパスと製品名\n")
+		outputBuilder.WriteString(additionalInfo.TitleInfo + "\n")
+	}
 
 	// ヘッダー情報
 	outputBuilder.WriteString("#曲データ\n")
