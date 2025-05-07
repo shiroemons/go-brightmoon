@@ -34,6 +34,21 @@ var (
 
 	// 正規表現パターンを事前コンパイル
 	datFilePattern = regexp.MustCompile(`^th\d+(?:tr)?\.dat$`)
+
+	// アーカイブタイプと生成関数のマッピング
+	archiveTypeMapping = []struct {
+		name      string
+		newFunc   interface{}
+		needsType bool
+		baseType  int
+	}{
+		{"Yumemi", pbgarc.NewYumemiArchive, false, 0},
+		{"Kaguya", pbgarc.NewKaguyaArchive, true, 1},
+		{"Suica", pbgarc.NewSuicaArchive, false, 0},
+		{"Hinanawi", pbgarc.NewHinanawiArchive, false, 0},
+		{"Marisa", pbgarc.NewMarisaArchive, false, 0},
+		{"Kanako", pbgarc.NewKanakoArchive, true, 2},
+	}
 )
 
 // init はフラグの設定を行います
@@ -99,6 +114,24 @@ func debugPrintf(format string, a ...interface{}) {
 	}
 }
 
+// extractGameNumber はファイル名からゲーム番号を抽出します
+func extractGameNumber(filename string) int {
+	baseName := strings.ToLower(filepath.Base(filename))
+	gameNum := -1
+
+	// thで始まるdatファイルなら、ゲーム番号を抽出
+	if strings.HasPrefix(baseName, "th") {
+		re := regexp.MustCompile(`^th(\d+)`)
+		matches := re.FindStringSubmatch(baseName)
+		if len(matches) > 1 {
+			gameNum, _ = strconv.Atoi(matches[1])
+			debugPrintf("ファイル名からゲーム番号 %d を抽出しました\n", gameNum)
+		}
+	}
+
+	return gameNum
+}
+
 // openArchiveAndExtract は.datアーカイブから特定のファイルをメモリに展開します
 func openArchiveAndExtract(archivePath string, archiveType int, targetFiles []string) (map[string][]byte, error) {
 	results := make(map[string][]byte)
@@ -109,75 +142,66 @@ func openArchiveAndExtract(archivePath string, archiveType int, targetFiles []st
 
 	// ファイル名からゲーム番号を判断して、より直接的にアーカイブタイプを設定
 	if archiveType == -1 && strings.HasSuffix(strings.ToLower(archivePath), ".dat") {
-		baseName := strings.ToLower(filepath.Base(archivePath))
-
-		// thで始まるdatファイルなら、ゲーム番号を抽出して強制的にタイプを設定
-		if strings.HasPrefix(baseName, "th") {
-			re := regexp.MustCompile(`^th(\d+)`)
-			matches := re.FindStringSubmatch(baseName)
-			if len(matches) > 1 {
-				gameNum, _ := strconv.Atoi(matches[1])
-				debugPrintf("ファイル名からゲーム番号 %d を抽出しました\n", gameNum)
-
-				// ゲーム番号に基づいてタイプを強制設定
-				if gameNum >= 6 && gameNum <= 7 {
-					// 6, 7: 特殊な形式を使用
-					if gameNum == 6 {
-						debugPrintf("Hinanawi形式を強制適用します\n")
-						archive = pbgarc.NewHinanawiArchive()
-						ok, openErr := archive.Open(archivePath)
-						if !ok || openErr != nil {
-							debugPrintf("Hinanawi形式でのオープンに失敗しました: %v\n", openErr)
-						} else {
-							debugPrintf("Hinanawi形式での強制オープンに成功しました\n")
-							goto EXTRACT_FILES
-						}
-					} else if gameNum == 7 {
-						debugPrintf("Yumemi形式を強制適用します\n")
-						archive = pbgarc.NewYumemiArchive()
-						ok, openErr := archive.Open(archivePath)
-						if !ok || openErr != nil {
-							debugPrintf("Yumemi形式でのオープンに失敗しました: %v\n", openErr)
-						} else {
-							debugPrintf("Yumemi形式での強制オープンに成功しました\n")
-							goto EXTRACT_FILES
-						}
-					}
-				} else if gameNum == 8 || gameNum == 9 {
-					// 8, 9: Kaguya形式
-					debugPrintf("Kaguya形式（タイプ %d）を強制適用します\n", gameNum-8)
-					kaguya := pbgarc.NewKaguyaArchive()
-					kaguya.SetArchiveType(gameNum - 8) // 8→0, 9→1
-					ok, openErr := kaguya.Open(archivePath)
+		gameNum := extractGameNumber(archivePath)
+		if gameNum > 0 {
+			// ゲーム番号に基づいてタイプを強制設定
+			if gameNum >= 6 && gameNum <= 7 {
+				// 6, 7: 特殊な形式を使用
+				if gameNum == 6 {
+					debugPrintf("Hinanawi形式を強制適用します\n")
+					archive = pbgarc.NewHinanawiArchive()
+					ok, openErr := archive.Open(archivePath)
 					if !ok || openErr != nil {
-						debugPrintf("Kaguya形式でのオープンに失敗しました: %v\n", openErr)
+						debugPrintf("Hinanawi形式でのオープンに失敗しました: %v\n", openErr)
 					} else {
-						archive = kaguya
-						debugPrintf("Kaguya形式での強制オープンに成功しました\n")
+						debugPrintf("Hinanawi形式での強制オープンに成功しました\n")
 						goto EXTRACT_FILES
 					}
-				} else if gameNum >= 10 {
-					// 10以降: Kanako形式
-					var typeNum int
-					if gameNum >= 10 && gameNum <= 11 || gameNum == 95 {
-						typeNum = 0
-					} else if gameNum == 12 {
-						typeNum = 1
-					} else {
-						typeNum = 2 // 13以降はタイプ2
-					}
-
-					debugPrintf("Kanako形式（タイプ %d）を強制適用します\n", typeNum)
-					kanako := pbgarc.NewKanakoArchive()
-					kanako.SetArchiveType(typeNum)
-					ok, openErr := kanako.Open(archivePath)
+				} else if gameNum == 7 {
+					debugPrintf("Yumemi形式を強制適用します\n")
+					archive = pbgarc.NewYumemiArchive()
+					ok, openErr := archive.Open(archivePath)
 					if !ok || openErr != nil {
-						debugPrintf("Kanako形式でのオープンに失敗しました: %v\n", openErr)
+						debugPrintf("Yumemi形式でのオープンに失敗しました: %v\n", openErr)
 					} else {
-						archive = kanako
-						debugPrintf("Kanako形式での強制オープンに成功しました\n")
+						debugPrintf("Yumemi形式での強制オープンに成功しました\n")
 						goto EXTRACT_FILES
 					}
+				}
+			} else if gameNum == 8 || gameNum == 9 {
+				// 8, 9: Kaguya形式
+				debugPrintf("Kaguya形式（タイプ %d）を強制適用します\n", gameNum-8)
+				kaguya := pbgarc.NewKaguyaArchive()
+				kaguya.SetArchiveType(gameNum - 8) // 8→0, 9→1
+				ok, openErr := kaguya.Open(archivePath)
+				if !ok || openErr != nil {
+					debugPrintf("Kaguya形式でのオープンに失敗しました: %v\n", openErr)
+				} else {
+					archive = kaguya
+					debugPrintf("Kaguya形式での強制オープンに成功しました\n")
+					goto EXTRACT_FILES
+				}
+			} else if gameNum >= 10 {
+				// 10以降: Kanako形式
+				var typeNum int
+				if gameNum >= 10 && gameNum <= 11 || gameNum == 95 {
+					typeNum = 0
+				} else if gameNum == 12 {
+					typeNum = 1
+				} else {
+					typeNum = 2 // 13以降はタイプ2
+				}
+
+				debugPrintf("Kanako形式（タイプ %d）を強制適用します\n", typeNum)
+				kanako := pbgarc.NewKanakoArchive()
+				kanako.SetArchiveType(typeNum)
+				ok, openErr := kanako.Open(archivePath)
+				if !ok || openErr != nil {
+					debugPrintf("Kanako形式でのオープンに失敗しました: %v\n", openErr)
+				} else {
+					archive = kanako
+					debugPrintf("Kanako形式での強制オープンに成功しました\n")
+					goto EXTRACT_FILES
 				}
 			}
 		}
@@ -261,24 +285,9 @@ func openSpecificArchive(filename string, archiveType int) (pbgarc.PBGArchive, e
 	var targetName string
 	subType := -1
 
-	// アーカイブタイプと生成関数のマッピング
-	typeMapping := []struct {
-		name      string
-		newFunc   interface{}
-		needsType bool
-		baseType  int
-	}{
-		{"Yumemi", pbgarc.NewYumemiArchive, false, 0},
-		{"Kaguya", pbgarc.NewKaguyaArchive, true, 1},
-		{"Suica", pbgarc.NewSuicaArchive, false, 0},
-		{"Hinanawi", pbgarc.NewHinanawiArchive, false, 0},
-		{"Marisa", pbgarc.NewMarisaArchive, false, 0},
-		{"Kanako", pbgarc.NewKanakoArchive, true, 2},
-	}
-
 	// 指定されたarchiveTypeから適切なアーカイブを探す
 	found := false
-	for _, mapping := range typeMapping {
+	for _, mapping := range archiveTypeMapping {
 		if mapping.needsType {
 			if mapping.baseType == 1 { // Kaguya
 				if archiveType == 0 || archiveType == 1 {
@@ -333,21 +342,6 @@ func openSpecificArchive(filename string, archiveType int) (pbgarc.PBGArchive, e
 
 // openArchiveAuto はアーカイブ形式を自動判別してアーカイブを開きます
 func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
-	// 各アーカイブタイプを試す
-	archiveMappings := []struct {
-		name      string
-		newFunc   interface{}
-		needsType bool
-		baseType  int
-	}{
-		{"Yumemi", pbgarc.NewYumemiArchive, false, 0},
-		{"Suica", pbgarc.NewSuicaArchive, false, 0},
-		{"Hinanawi", pbgarc.NewHinanawiArchive, false, 0},
-		{"Marisa", pbgarc.NewMarisaArchive, false, 0},
-		{"Kaguya", pbgarc.NewKaguyaArchive, true, 1},
-		{"Kanako", pbgarc.NewKanakoArchive, true, 2},
-	}
-
 	candidates := []struct {
 		name    string
 		archive pbgarc.PBGArchive
@@ -360,8 +354,8 @@ func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
 	}{}
 
 	debugPrintf("アーカイブ形式を自動検出中...\n")
-	for i := range archiveMappings {
-		mapping := &archiveMappings[i]
+	for i := range archiveTypeMapping {
+		mapping := &archiveTypeMapping[i]
 		var archive pbgarc.PBGArchive
 
 		// newFuncの型に応じてインスタンス化
@@ -407,19 +401,7 @@ func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
 	}
 
 	// ファイル名からタイプを推測
-	baseName := strings.ToLower(filepath.Base(filename))
-	gameNum := -1
-
-	// 改善: ファイル名からゲーム番号を抽出（例：th08.dat → 8, th13tr.dat → 13, th20tr.dat → 20）
-	if strings.HasPrefix(baseName, "th") {
-		// 正規表現を使って数字部分を抽出
-		re := regexp.MustCompile(`^th(\d+)`)
-		matches := re.FindStringSubmatch(baseName)
-		if len(matches) > 1 {
-			gameNum, _ = strconv.Atoi(matches[1])
-			debugPrintf("ファイル名からゲーム番号 %d を抽出しました\n", gameNum)
-		}
-	}
+	gameNum := extractGameNumber(filename)
 
 	var chosenArchive pbgarc.PBGArchive
 	var archiveType int = -1    // 選択されたアーカイブのタイプ
@@ -530,6 +512,15 @@ func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
 	return chosenArchive, nil
 }
 
+// createMultipleDatFilesError は複数の.datファイルが見つかった場合のエラーを生成します
+func createMultipleDatFilesError(datFiles []string) error {
+	fileNames := make([]string, len(datFiles))
+	for i, path := range datFiles {
+		fileNames[i] = filepath.Base(path)
+	}
+	return fmt.Errorf("複数の.datファイルが見つかりました: %s。-archive フラグで使用するファイルを指定してください", strings.Join(fileNames, ", "))
+}
+
 // findDatFiles は実行ファイルと同じディレクトリおよびカレントディレクトリにある thxx.dat や thxxtr.dat ファイルを検索します
 func findDatFiles() (string, error) {
 	var datFiles []string
@@ -551,11 +542,7 @@ func findDatFiles() (string, error) {
 	if len(datFiles) > 0 {
 		// 一致するファイルが2つ以上ある場合
 		if len(datFiles) > 1 {
-			fileNames := make([]string, len(datFiles))
-			for i, path := range datFiles {
-				fileNames[i] = filepath.Base(path)
-			}
-			return "", fmt.Errorf("複数の.datファイルが見つかりました: %s。-archive フラグで使用するファイルを指定してください", strings.Join(fileNames, ", "))
+			return "", createMultipleDatFilesError(datFiles)
 		}
 
 		// 1つだけ見つかった場合はそのファイルパスを返す
@@ -585,11 +572,7 @@ func findDatFiles() (string, error) {
 
 	// 一致するファイルが2つ以上ある場合
 	if len(datFiles) > 1 {
-		fileNames := make([]string, len(datFiles))
-		for i, path := range datFiles {
-			fileNames[i] = filepath.Base(path)
-		}
-		return "", fmt.Errorf("複数の.datファイルが見つかりました: %s。-archive フラグで使用するファイルを指定してください", strings.Join(fileNames, ", "))
+		return "", createMultipleDatFilesError(datFiles)
 	}
 
 	// 1つだけ見つかった場合はそのファイルパスを返す
@@ -675,78 +658,93 @@ type AdditionalInfo struct {
 	Error             error
 }
 
-// checkAdditionalInfo は補足情報の存在をチェックします
-func checkAdditionalInfo(archivePath string) AdditionalInfo {
-	// アーカイブと同じディレクトリを取得
-	dir := filepath.Dir(archivePath)
+// isTrialVersion はファイル名から体験版かどうかを判定します
+func isTrialVersion(filename string) bool {
+	return strings.Contains(strings.ToLower(filepath.Base(filename)), "tr")
+}
 
-	// readme.txtのパス
-	readmePath := filepath.Join(dir, "readme.txt")
+// processArchive はアーカイブからファイルを抽出して処理する共通関数です
+func processArchive(archivePath string, archiveType int) ([]byte, string, string, error) {
+	// アーカイブが体験版かどうか判定
+	isTrial := isTrialVersion(archivePath)
 
-	// thbgm.datとthbgm_tr.datのパス
-	thbgmPath := filepath.Join(dir, "thbgm.dat")
-	thbgmTrPath := filepath.Join(dir, "thbgm_tr.dat")
-
-	// readme.txtの存在チェック
-	if !fileExists(readmePath) {
-		return AdditionalInfo{HasAdditionalInfo: false}
-	}
-
-	// thbgm.datまたはthbgm_tr.datの存在チェック
-	if !fileExists(thbgmPath) && !fileExists(thbgmTrPath) {
-		return AdditionalInfo{HasAdditionalInfo: false}
-	}
-
-	// readme.txtを読み込む
-	readmeData, err := os.ReadFile(readmePath)
-	if err != nil {
-		return AdditionalInfo{Error: fmt.Errorf("readme.txtの読み込みに失敗しました: %w", err)}
-	}
-
-	// ShiftJISからUTF-8に変換
-	readmeText, err := FromShiftJIS(string(readmeData))
-	if err != nil {
-		return AdditionalInfo{Error: fmt.Errorf("readme.txtの文字コード変換に失敗しました: %w", err)}
-	}
-
-	// 2行目を取得
-	lines := strings.Split(readmeText, "\n")
-	if len(lines) < 2 {
-		return AdditionalInfo{HasAdditionalInfo: false}
-	}
-
-	// 2行目の最初の文字が○かチェック
-	secondLine := strings.TrimSpace(lines[1])
-	if !strings.HasPrefix(secondLine, "○") {
-		return AdditionalInfo{HasAdditionalInfo: false}
-	}
-
-	// ○以降の文字列を取得
-	title := strings.TrimPrefix(secondLine, "○")
-
-	// 使用するthbgm.datのパスを決定
-	var thbgmFilePath string
-	if fileExists(thbgmPath) {
-		thbgmFilePath = thbgmPath
+	// 検索するファイル名（体験版アーカイブの場合は _trファイルのみを検索）
+	var targetFiles []string
+	var fmtFile, cmtFile string
+	if isTrial {
+		targetFiles = []string{"thbgm_tr.fmt", "musiccmt_tr.txt"}
+		fmtFile = "thbgm_tr.fmt"
+		cmtFile = "musiccmt_tr.txt"
 	} else {
-		thbgmFilePath = thbgmTrPath
+		targetFiles = []string{"thbgm.fmt", "musiccmt.txt"}
+		fmtFile = "thbgm.fmt"
+		cmtFile = "musiccmt.txt"
 	}
 
-	// 体験版かどうかチェック
-	isTrialVersion := strings.Contains(title, " 体験版")
-
-	// 体験版の場合は「 体験版」の表記を除外
-	displayTitle := title
-	if isTrialVersion {
-		displayTitle = strings.Replace(title, " 体験版", "", 1)
+	// アーカイブからファイルを抽出
+	fileData, err := openArchiveAndExtract(archivePath, archiveType, targetFiles)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("アーカイブからのファイル抽出中にエラーが発生しました: %w", err)
 	}
 
-	return AdditionalInfo{
-		HasAdditionalInfo: true,
-		TitleInfo:         fmt.Sprintf("@%s,%s", thbgmFilePath, title),
-		DisplayTitle:      displayTitle,
-		IsTrialVersion:    isTrialVersion,
+	// データの取得
+	var thfmt []byte
+	var musiccmt string
+
+	if data, ok := fileData[fmtFile]; ok && len(data) > 0 {
+		thfmt = data
+		if cmtData, ok := fileData[cmtFile]; ok {
+			musiccmt = string(cmtData)
+		} else {
+			return nil, "", "", fmt.Errorf("警告: %s が見つかりませんでした", cmtFile)
+		}
+	} else {
+		return nil, "", "", fmt.Errorf("アーカイブ内に %s が見つかりませんでした", fmtFile)
 	}
+
+	return thfmt, musiccmt, archivePath, nil
+}
+
+// processLocalFiles はローカルファイルシステムからファイルを読み込む共通関数です
+func processLocalFiles() ([]byte, string, string, error) {
+	var thfmt []byte
+	var musiccmt string
+	var inputFile string
+	var err error
+
+	// 製品版のファイルをチェック
+	if fileExists("thbgm.fmt") && fileExists("musiccmt.txt") {
+		inputFile = "thbgm" // 特別な名前を使用
+		thfmt, err = os.ReadFile("thbgm.fmt")
+		if err != nil {
+			return nil, "", "", fmt.Errorf("thbgm.fmtの読み込みに失敗しました: %w", err)
+		}
+
+		musiccmtBytes, err := os.ReadFile("musiccmt.txt")
+		if err != nil {
+			return nil, "", "", fmt.Errorf("musiccmt.txtの読み込みに失敗しました: %w", err)
+		}
+		musiccmt = string(musiccmtBytes)
+		return thfmt, musiccmt, inputFile, nil
+	}
+
+	// 体験版のファイルをチェック
+	if fileExists("thbgm_tr.fmt") && fileExists("musiccmt_tr.txt") {
+		inputFile = "thbgm_tr" // 特別な名前を使用
+		thfmt, err = os.ReadFile("thbgm_tr.fmt")
+		if err != nil {
+			return nil, "", "", fmt.Errorf("thbgm_tr.fmtの読み込みに失敗しました: %w", err)
+		}
+
+		musiccmtBytes, err := os.ReadFile("musiccmt_tr.txt")
+		if err != nil {
+			return nil, "", "", fmt.Errorf("musiccmt_tr.txtの読み込みに失敗しました: %w", err)
+		}
+		musiccmt = string(musiccmtBytes)
+		return thfmt, musiccmt, inputFile, nil
+	}
+
+	return nil, "", "", fmt.Errorf("thbgm.fmt、musiccmt.txt または thbgm_tr.fmt、musiccmt_tr.txt のファイルがありません")
 }
 
 func main() {
@@ -768,7 +766,6 @@ func main() {
 	// アーカイブが指定されている場合
 	if archivePath != "" {
 		debugPrintf("アーカイブファイル %s からデータを読み込みます...\n", archivePath)
-		inputFile = archivePath
 
 		// 補足情報の存在チェックとタイトル取得
 		additionalInfo := checkAdditionalInfo(archivePath)
@@ -776,53 +773,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "警告: 補足情報の読み込みに失敗しました: %v\n", additionalInfo.Error)
 		}
 
-		// アーカイブが体験版かどうか判定
-		isTrialVersion := strings.Contains(strings.ToLower(filepath.Base(archivePath)), "tr")
-
-		// 検索するファイル名（体験版アーカイブの場合は _trファイルのみを検索）
-		var targetFiles []string
-		if isTrialVersion {
-			targetFiles = []string{"thbgm_tr.fmt", "musiccmt_tr.txt"}
-		} else {
-			targetFiles = []string{"thbgm.fmt", "musiccmt.txt"}
-		}
-
-		// アーカイブからファイルを抽出
-		fileData, err := openArchiveAndExtract(archivePath, *useType, targetFiles)
+		// アーカイブからファイルを抽出して処理
+		thfmt, musiccmt, inputFile, err = processArchive(archivePath, *useType)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "アーカイブからのファイル抽出中にエラーが発生しました: %v\n", err)
+			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(1)
-		}
-
-		// データの取得
-		if isTrialVersion {
-			// 体験版アーカイブの場合
-			if data, ok := fileData["thbgm_tr.fmt"]; ok && len(data) > 0 {
-				thfmt = data
-				if cmtData, ok := fileData["musiccmt_tr.txt"]; ok {
-					musiccmt = string(cmtData)
-				} else {
-					fmt.Println("警告: musiccmt_tr.txt が見つかりませんでした")
-					os.Exit(1)
-				}
-			} else {
-				fmt.Println("アーカイブ内に thbgm_tr.fmt が見つかりませんでした。")
-				os.Exit(1)
-			}
-		} else {
-			// 製品版アーカイブの場合
-			if data, ok := fileData["thbgm.fmt"]; ok && len(data) > 0 {
-				thfmt = data
-				if cmtData, ok := fileData["musiccmt.txt"]; ok {
-					musiccmt = string(cmtData)
-				} else {
-					fmt.Println("警告: musiccmt.txt が見つかりませんでした")
-					os.Exit(1)
-				}
-			} else {
-				fmt.Println("アーカイブ内に thbgm.fmt が見つかりませんでした。")
-				os.Exit(1)
-			}
 		}
 	} else {
 		// コマンドラインでアーカイブが指定されていない場合は自動検出を試みる
@@ -835,7 +790,6 @@ func main() {
 		if datFile != "" {
 			// .datファイルが見つかった場合、そこからデータを抽出
 			debugPrintf("自動検出したアーカイブファイル %s からデータを読み込みます...\n", filepath.Base(datFile))
-			inputFile = datFile
 
 			// 補足情報の存在チェックとタイトル取得
 			additionalInfo := checkAdditionalInfo(datFile)
@@ -843,76 +797,17 @@ func main() {
 				fmt.Fprintf(os.Stderr, "警告: 補足情報の読み込みに失敗しました: %v\n", additionalInfo.Error)
 			}
 
-			// アーカイブが体験版かどうか判定
-			isTrialVersion := strings.Contains(strings.ToLower(filepath.Base(datFile)), "tr")
-
-			// 検索するファイル名（体験版アーカイブの場合は _trファイルのみを検索）
-			var targetFiles []string
-			if isTrialVersion {
-				targetFiles = []string{"thbgm_tr.fmt", "musiccmt_tr.txt"}
-			} else {
-				targetFiles = []string{"thbgm.fmt", "musiccmt.txt"}
-			}
-
-			// アーカイブからファイルを抽出
-			fileData, err := openArchiveAndExtract(datFile, *useType, targetFiles)
+			// アーカイブからファイルを抽出して処理
+			thfmt, musiccmt, inputFile, err = processArchive(datFile, *useType)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "アーカイブからのファイル抽出中にエラーが発生しました: %v\n", err)
+				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
-			}
-
-			// データの取得
-			if isTrialVersion {
-				// 体験版アーカイブの場合
-				if data, ok := fileData["thbgm_tr.fmt"]; ok && len(data) > 0 {
-					thfmt = data
-					if cmtData, ok := fileData["musiccmt_tr.txt"]; ok {
-						musiccmt = string(cmtData)
-					} else {
-						fmt.Println("警告: musiccmt_tr.txt が見つかりませんでした")
-						os.Exit(1)
-					}
-				} else {
-					fmt.Println("アーカイブ内に thbgm_tr.fmt が見つかりませんでした。")
-					os.Exit(1)
-				}
-			} else {
-				// 製品版アーカイブの場合
-				if data, ok := fileData["thbgm.fmt"]; ok && len(data) > 0 {
-					thfmt = data
-					if cmtData, ok := fileData["musiccmt.txt"]; ok {
-						musiccmt = string(cmtData)
-					} else {
-						fmt.Println("警告: musiccmt.txt が見つかりませんでした")
-						os.Exit(1)
-					}
-				} else {
-					fmt.Println("アーカイブ内に thbgm.fmt が見つかりませんでした。")
-					os.Exit(1)
-				}
 			}
 		} else {
 			// 従来の処理: ファイルシステムからの読み込み
-			if fileExists("thbgm.fmt") && fileExists("musiccmt.txt") {
-				// カレントディレクトリのファイルを使用する場合
-				inputFile = "thbgm" // 特別な名前を使用
-
-				thfmt, err = os.ReadFile("thbgm.fmt")
-				check(err)
-				musiccmtBytes, err := os.ReadFile("musiccmt.txt")
-				check(err)
-				musiccmt = string(musiccmtBytes)
-			} else if fileExists("thbgm_tr.fmt") && fileExists("musiccmt_tr.txt") {
-				// 体験版のファイルを使用する場合
-				inputFile = "thbgm_tr" // 特別な名前を使用
-
-				thfmt, err = os.ReadFile("thbgm_tr.fmt")
-				check(err)
-				musiccmtBytes, err := os.ReadFile("musiccmt_tr.txt")
-				check(err)
-				musiccmt = string(musiccmtBytes)
-			} else {
-				fmt.Println("thbgm.fmt、musiccmt.txt または thbgm_tr.fmt、musiccmt_tr.txt のファイルがありません。")
+			thfmt, musiccmt, inputFile, err = processLocalFiles()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
 		}
@@ -1033,4 +928,78 @@ func main() {
 
 	// 標準出力にも表示
 	fmt.Println(outputBuilder.String())
+}
+
+// checkAdditionalInfo は補足情報の存在をチェックします
+func checkAdditionalInfo(archivePath string) AdditionalInfo {
+	// アーカイブと同じディレクトリを取得
+	dir := filepath.Dir(archivePath)
+
+	// readme.txtのパス
+	readmePath := filepath.Join(dir, "readme.txt")
+
+	// thbgm.datとthbgm_tr.datのパス
+	thbgmPath := filepath.Join(dir, "thbgm.dat")
+	thbgmTrPath := filepath.Join(dir, "thbgm_tr.dat")
+
+	// readme.txtの存在チェック
+	if !fileExists(readmePath) {
+		return AdditionalInfo{HasAdditionalInfo: false}
+	}
+
+	// thbgm.datまたはthbgm_tr.datの存在チェック
+	if !fileExists(thbgmPath) && !fileExists(thbgmTrPath) {
+		return AdditionalInfo{HasAdditionalInfo: false}
+	}
+
+	// readme.txtを読み込む
+	readmeData, err := os.ReadFile(readmePath)
+	if err != nil {
+		return AdditionalInfo{Error: fmt.Errorf("readme.txtの読み込みに失敗しました: %w", err)}
+	}
+
+	// ShiftJISからUTF-8に変換
+	readmeText, err := FromShiftJIS(string(readmeData))
+	if err != nil {
+		return AdditionalInfo{Error: fmt.Errorf("readme.txtの文字コード変換に失敗しました: %w", err)}
+	}
+
+	// 2行目を取得
+	lines := strings.Split(readmeText, "\n")
+	if len(lines) < 2 {
+		return AdditionalInfo{HasAdditionalInfo: false}
+	}
+
+	// 2行目の最初の文字が○かチェック
+	secondLine := strings.TrimSpace(lines[1])
+	if !strings.HasPrefix(secondLine, "○") {
+		return AdditionalInfo{HasAdditionalInfo: false}
+	}
+
+	// ○以降の文字列を取得
+	title := strings.TrimPrefix(secondLine, "○")
+
+	// 使用するthbgm.datのパスを決定
+	var thbgmFilePath string
+	if fileExists(thbgmPath) {
+		thbgmFilePath = thbgmPath
+	} else {
+		thbgmFilePath = thbgmTrPath
+	}
+
+	// 体験版かどうかチェック
+	isTrialVer := strings.Contains(title, " 体験版")
+
+	// 体験版の場合は「 体験版」の表記を除外
+	displayTitle := title
+	if isTrialVer {
+		displayTitle = strings.Replace(title, " 体験版", "", 1)
+	}
+
+	return AdditionalInfo{
+		HasAdditionalInfo: true,
+		TitleInfo:         fmt.Sprintf("@%s,%s", thbgmFilePath, title),
+		DisplayTitle:      displayTitle,
+		IsTrialVersion:    isTrialVer,
+	}
 }
