@@ -2,8 +2,6 @@
 
 **東方 Project のアーカイブファイルを操作するための Go 製ツールおよびライブラリ**
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/shiroemons/go-brightmoon.svg)](https://pkg.go.dev/github.com/shiroemons/go-brightmoon)
-
 ## 概要
 
 Brightmoon は、東方Project のゲームで使用されている様々なアーカイブファイル（`.dat` ファイルなど）を扱うためのコマンドラインツールです。
@@ -16,8 +14,7 @@ Brightmoon は、東方Project のゲームで使用されている様々なア�
     *   Hinanawi (紅魔郷)
     *   Yumemi (妖々夢)
     *   Kaguya (永夜抄, 弾幕アマノジャク)
-    *   Marisa (文花帖)
-    *   Kanako (風神録 ～ 錦上京)
+    *   Kanako (文花帖, 風神録 ～ 錦上京)
     *   Suica (風神録の別形式)
 *   **コマンドラインツール:**
     *   アーカイブ内のファイル一覧表示 (`-l`)
@@ -26,7 +23,7 @@ Brightmoon は、東方Project のゲームで使用されている様々なア�
     *   アーカイブ形式の自動検出と手動指定 (`-t`)
     *   並列処理による高速抽出 (`-p`, `-w`)
     *   デバッグ情報表示 (`-d`)
-    *   音楽タイトル情報の抽出 (`titles_th` コマンド)
+    *   曲目ファイル作るくん (`titles_th` コマンド)
 *   **(ライブラリとしての利用も可能ですが、現在はコマンドラインツールとしての利用が主です)**
 
 ## インストール
@@ -110,7 +107,7 @@ brightmoon -d -l th07.dat
 brightmoon -v
 ```
 
-### titles_th: 音楽タイトル抽出ツール
+### titles_th: 曲目ファイル作るくん
 
 #### コマンド形式
 
@@ -159,7 +156,7 @@ titles_th -v
 
 `-t` オプションが指定されない場合、Brightmoon は**ユーザーに確認することなく**、以下の手順でアーカイブ形式を自動的に判別しようとします。
 
-1.  定義された順序（Yumemi, Suica, Hinanawi, Marisa, Kaguya, Kanako）で各形式でのオープンを試みます。
+1.  定義された順序（Yumemi, Suica, Hinanawi, Kaguya, Kanako）で各形式でのオープンを試みます。
 2.  正常にオープンでき、かつファイルが含まれている（`EnumFirst()` が成功する）形式を候補としてリストアップします。
 3.  候補が 1 つだけの場合、その形式として処理を進めます。形式が Kaguya または Kanako の場合はステップ 5 に進みます。
 4.  候補が複数見つかった場合、入力された`<アーカイブファイル>`の**ファイル名から形式を推測**します（例: `th08*.dat` なら Kaguya）。
@@ -202,4 +199,3 @@ titles_th -v
 | 東方虹龍洞 (TH18) | `th18*.dat` | Kanako | `2` | 自動検出可能 (ファイル名による) |
 | 東方獣王園 (TH19) | `th19*.dat` | Kanako | `2` | 自動検出可能 (ファイル名による) |
 | 東方錦上京 (TH20) | `th20*.dat` | Kanako | `2` | 自動検出可能 (ファイル名による) |
-| (その他) | `th10bgm.dat` etc. | Suica | - | 自動検出可能 (風神録の別形式) |
