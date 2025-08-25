@@ -220,7 +220,7 @@ func TestDefaultMemoryExtractor_ExtractToMemory(t *testing.T) {
 			name: "空ファイル",
 			setupMock: func() *mocks.SimpleMockArchive {
 				archive := mocks.NewSimpleMockArchive(map[string][]byte{
-					"empty.txt": []byte{},
+					"empty.txt": {},
 				})
 				archive.CurrentFile = "empty.txt"
 				return archive
