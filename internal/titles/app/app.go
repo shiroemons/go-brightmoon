@@ -2,6 +2,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -58,17 +59,17 @@ func NewWithOptions(cfg *config.Config, opts Options) *App {
 }
 
 // Run はアプリケーションを実行します
-func (a *App) Run() error {
+func (a *App) Run(ctx context.Context) error {
 	var extractedData models.ExtractedData
 	var err error
 
 	// データソースの決定と抽出
 	if a.config.ArchivePath != "" {
 		// アーカイブが指定されている場合
-		extractedData, err = a.processArchive(a.config.ArchivePath)
+		extractedData, err = a.processArchive(ctx, a.config.ArchivePath)
 	} else {
 		// アーカイブが指定されていない場合、自動検出またはローカルファイル
-		extractedData, err = a.processAutoDetect()
+		extractedData, err = a.processAutoDetect(ctx)
 	}
 
 	if err != nil {
@@ -112,7 +113,13 @@ func (a *App) Run() error {
 }
 
 // processArchive はアーカイブからデータを抽出します
-func (a *App) processArchive(archivePath string) (models.ExtractedData, error) {
+func (a *App) processArchive(ctx context.Context, archivePath string) (models.ExtractedData, error) {
+	// コンテキストのキャンセルチェック
+	select {
+	case <-ctx.Done():
+		return models.ExtractedData{}, ctx.Err()
+	default:
+	}
 	a.logger.Printf("アーカイブファイル %s からデータを読み込みます...\n", archivePath)
 
 	// アーカイブが体験版かどうか判定
@@ -132,7 +139,7 @@ func (a *App) processArchive(archivePath string) (models.ExtractedData, error) {
 	}
 
 	// アーカイブからファイルを抽出
-	fileData, err := a.extractor.ExtractFiles(archivePath, a.config.ArchiveType, targetFiles)
+	fileData, err := a.extractor.ExtractFiles(ctx, archivePath, a.config.ArchiveType, targetFiles)
 	if err != nil {
 		return models.ExtractedData{}, fmt.Errorf("アーカイブからのファイル抽出中にエラーが発生しました: %w", err)
 	}
@@ -160,7 +167,13 @@ func (a *App) processArchive(archivePath string) (models.ExtractedData, error) {
 }
 
 // processAutoDetect は自動検出またはローカルファイルからデータを取得します
-func (a *App) processAutoDetect() (models.ExtractedData, error) {
+func (a *App) processAutoDetect(ctx context.Context) (models.ExtractedData, error) {
+	// コンテキストのキャンセルチェック
+	select {
+	case <-ctx.Done():
+		return models.ExtractedData{}, ctx.Err()
+	default:
+	}
 	// .datファイルの自動検出を試みる
 	datFile, err := a.datFileFinder.Find()
 	if err != nil {
@@ -170,15 +183,21 @@ func (a *App) processAutoDetect() (models.ExtractedData, error) {
 	if datFile != "" {
 		// .datファイルが見つかった場合
 		a.logger.Printf("自動検出したアーカイブファイル %s からデータを読み込みます...\n", filepath.Base(datFile))
-		return a.processArchive(datFile)
+		return a.processArchive(ctx, datFile)
 	}
 
 	// ローカルファイルからの読み込みを試みる
-	return a.processLocalFiles()
+	return a.processLocalFiles(ctx)
 }
 
 // processLocalFiles はローカルファイルシステムからファイルを読み込みます
-func (a *App) processLocalFiles() (models.ExtractedData, error) {
+func (a *App) processLocalFiles(ctx context.Context) (models.ExtractedData, error) {
+	// コンテキストのキャンセルチェック
+	select {
+	case <-ctx.Done():
+		return models.ExtractedData{}, ctx.Err()
+	default:
+	}
 	// 製品版のファイルをチェック
 	if a.fs.FileExists("thbgm.fmt") && a.fs.FileExists("musiccmt.txt") {
 		thfmt, err := a.fs.ReadFile("thbgm.fmt")

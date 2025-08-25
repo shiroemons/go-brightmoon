@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -62,7 +63,8 @@ func TestApp_processLocalFiles(t *testing.T) {
 			})
 
 			// processLocalFilesを実行
-			extractedData, err := app.processLocalFiles()
+			ctx := context.Background()
+			extractedData, err := app.processLocalFiles(ctx)
 
 			if tt.wantError {
 				if err == nil {
@@ -96,9 +98,35 @@ func TestApp_processLocalFiles_ReadError(t *testing.T) {
 	})
 
 	// processLocalFilesを実行
-	_, err := app.processLocalFiles()
+	ctx := context.Background()
+	_, err := app.processLocalFiles(ctx)
 	if err == nil {
 		t.Error("Expected error but got none")
+	}
+}
+
+func TestApp_processLocalFiles_ContextCancel(t *testing.T) {
+	// モックファイルシステムを作成
+	fs := mocks.NewMockFileSystem()
+	fs.Files = map[string][]byte{
+		"thbgm.fmt":    make([]byte, 52),
+		"musiccmt.txt": []byte("test data"),
+	}
+
+	// Appを作成
+	cfg := &config.Config{}
+	app := NewWithOptions(cfg, Options{
+		FileSystem: fs,
+	})
+
+	// キャンセル済みのコンテキストを作成
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // 即座にキャンセル
+
+	// processLocalFilesを実行
+	_, err := app.processLocalFiles(ctx)
+	if err != context.Canceled {
+		t.Errorf("Expected context.Canceled error, got %v", err)
 	}
 }
 

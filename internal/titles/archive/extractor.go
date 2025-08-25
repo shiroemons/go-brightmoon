@@ -2,6 +2,7 @@
 package archive
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -37,7 +38,14 @@ func NewExtractorWithFactory(logger *config.DebugLogger, factory ArchiveFactory,
 }
 
 // ExtractFiles は.datアーカイブから特定のファイルをメモリに展開します
-func (e *Extractor) ExtractFiles(archivePath string, archiveType int, targetFiles []string) (map[string][]byte, error) {
+func (e *Extractor) ExtractFiles(ctx context.Context, archivePath string, archiveType int, targetFiles []string) (map[string][]byte, error) {
+	// コンテキストのキャンセルチェック
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
 	results := make(map[string][]byte)
 
 	// アーカイブを開く
@@ -54,6 +62,13 @@ func (e *Extractor) ExtractFiles(archivePath string, archiveType int, targetFile
 
 	do := true
 	for do {
+		// コンテキストのキャンセルチェック
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+
 		entryName := archive.GetEntryName()
 
 		// 対象ファイルか確認

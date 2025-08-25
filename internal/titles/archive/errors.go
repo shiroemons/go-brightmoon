@@ -14,4 +14,16 @@ var (
 
 	// ErrUnsupportedArchiveType はサポートされていないアーカイブタイプの場合のエラー
 	ErrUnsupportedArchiveType = errors.New("サポートされていないアーカイブ形式です")
+
+	// ErrInvalidArchiveType は不明または不正なアーカイブタイプのエラー
+	ErrInvalidArchiveType = errors.New("指定されたアーカイブタイプが不明または不正です")
+
+	// ErrArchiveOpenFailed はアーカイブを開けない場合のエラー
+	ErrArchiveOpenFailed = errors.New("アーカイブを開けませんでした")
+
+	// ErrArchiveEmpty はアーカイブが空または無効の場合のエラー
+	ErrArchiveEmpty = errors.New("アーカイブが無効か空のようです")
+
+	// ErrFileExtraction はファイル抽出中のエラー
+	ErrFileExtraction = errors.New("アーカイブからのファイル抽出中にエラーが発生しました")
 )

@@ -54,7 +54,7 @@ func TestAdditionalInfoParser_CheckAdditionalInfo(t *testing.T) {
 		{
 			name: "体験版の補足情報あり",
 			setupFiles: func(dir string) error {
-				// readme.txt作成（「体験版」を含む）  
+				// readme.txt作成（「体験版」を含む）
 				readmeContent, err := toShiftJIS("タイトル\n○東方紅魔郷 体験版\n")
 				if err != nil {
 					return err
