@@ -2,6 +2,7 @@ package fileutil
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -142,6 +143,178 @@ func TestOSFileSystem(t *testing.T) {
 	}
 	if exec == "" {
 		t.Error("Executable should return non-empty string")
+	}
+}
+
+func TestOSFileSystem_ReadFile(t *testing.T) {
+	fs := NewOSFileSystem()
+
+	// 一時ファイルを作成
+	tmpfile, err := os.CreateTemp("", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpfile.Name())
+
+	testContent := []byte("test content")
+	if _, err := tmpfile.Write(testContent); err != nil {
+		t.Fatal(err)
+	}
+	tmpfile.Close()
+
+	// ReadFile のテスト
+	data, err := fs.ReadFile(tmpfile.Name())
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
+	if string(data) != string(testContent) {
+		t.Errorf("ReadFile content mismatch: got %s, want %s", data, testContent)
+	}
+
+	// 存在しないファイルのテスト
+	_, err = fs.ReadFile("/nonexistent/file.txt")
+	if err == nil {
+		t.Error("ReadFile should return error for non-existent file")
+	}
+}
+
+func TestOSFileSystem_WriteFile(t *testing.T) {
+	fs := NewOSFileSystem()
+
+	// 一時ディレクトリを作成
+	tmpDir, err := os.MkdirTemp("", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	testFile := filepath.Join(tmpDir, "test.txt")
+	testContent := []byte("test write content")
+
+	// WriteFile のテスト
+	err = fs.WriteFile(testFile, testContent, 0644)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	// ファイルが正しく書き込まれたか確認
+	data, err := os.ReadFile(testFile)
+	if err != nil {
+		t.Fatalf("Failed to read written file: %v", err)
+	}
+	if string(data) != string(testContent) {
+		t.Errorf("Written content mismatch: got %s, want %s", data, testContent)
+	}
+}
+
+func TestOSFileSystem_MkdirAll(t *testing.T) {
+	fs := NewOSFileSystem()
+
+	// 一時ディレクトリを作成
+	tmpDir, err := os.MkdirTemp("", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	testDir := filepath.Join(tmpDir, "nested", "dirs", "test")
+
+	// MkdirAll のテスト
+	err = fs.MkdirAll(testDir, 0755)
+	if err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
+
+	// ディレクトリが作成されたか確認
+	info, err := os.Stat(testDir)
+	if err != nil {
+		t.Fatalf("Directory was not created: %v", err)
+	}
+	if !info.IsDir() {
+		t.Error("Created path is not a directory")
+	}
+}
+
+func TestOSFileSystem_Stat(t *testing.T) {
+	fs := NewOSFileSystem()
+
+	// 一時ファイルを作成
+	tmpfile, err := os.CreateTemp("", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpfile.Name())
+	tmpfile.Close()
+
+	// Stat のテスト
+	info, err := fs.Stat(tmpfile.Name())
+	if err != nil {
+		t.Fatalf("Stat failed: %v", err)
+	}
+
+	// OSFileInfo のテスト
+	if info.Name() == "" {
+		t.Error("Name() should return non-empty string")
+	}
+	if info.IsDir() {
+		t.Error("IsDir() should return false for file")
+	}
+
+	// 存在しないファイルのテスト
+	_, err = fs.Stat("/nonexistent/file.txt")
+	if err == nil {
+		t.Error("Stat should return error for non-existent file")
+	}
+}
+
+func TestOSFileSystem_ReadDir(t *testing.T) {
+	fs := NewOSFileSystem()
+
+	// 一時ディレクトリを作成
+	tmpDir, err := os.MkdirTemp("", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// テストファイルとディレクトリを作成
+	testFile := filepath.Join(tmpDir, "test.txt")
+	testDir := filepath.Join(tmpDir, "subdir")
+
+	if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(testDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// ReadDir のテスト
+	entries, err := fs.ReadDir(tmpDir)
+	if err != nil {
+		t.Fatalf("ReadDir failed: %v", err)
+	}
+
+	if len(entries) != 2 {
+		t.Errorf("Expected 2 entries, got %d", len(entries))
+	}
+
+	// OSDirEntry のテスト
+	for _, entry := range entries {
+		if entry.Name() == "" {
+			t.Error("Entry Name() should return non-empty string")
+		}
+		if entry.Name() == "subdir" && !entry.IsDir() {
+			t.Error("IsDir() should return true for directory")
+		}
+		if entry.Name() == "test.txt" && entry.IsDir() {
+			t.Error("IsDir() should return false for file")
+		}
+	}
+
+	// 存在しないディレクトリのテスト
+	_, err = fs.ReadDir("/nonexistent/dir")
+	if err == nil {
+		t.Error("ReadDir should return error for non-existent directory")
 	}
 }
 

@@ -3,6 +3,7 @@ package fileutil
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -149,5 +150,296 @@ func TestDatFilePattern(t *testing.T) {
 		if result != test.expected {
 			t.Errorf("DatFilePattern.MatchString(%s) = %v; want %v", test.filename, result, test.expected)
 		}
+	}
+}
+
+func TestFromShiftJIS(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+		hasError bool
+	}{
+		{
+			name:     "ASCII text",
+			input:    "Hello World",
+			expected: "Hello World",
+			hasError: false,
+		},
+		{
+			name: "Japanese text in Shift_JIS",
+			// "こんにちは" in Shift_JIS (as string)
+			input:    string([]byte{0x82, 0xb1, 0x82, 0xf1, 0x82, 0xc9, 0x82, 0xbf, 0x82, 0xcd}),
+			expected: "こんにちは",
+			hasError: false,
+		},
+		{
+			name:     "Empty input",
+			input:    "",
+			expected: "",
+			hasError: false,
+		},
+		{
+			name: "Invalid Shift_JIS sequence",
+			// 不正なShift_JISシーケンス
+			input:    string([]byte{0xFF, 0xFF, 0xFF}),
+			expected: string([]rune{0xFFFD, 0xFFFD, 0xFFFD}), // Unicode replacement character
+			hasError: false, // transformは置換文字を使用するのでエラーにはならない
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := FromShiftJIS(tt.input)
+			if tt.hasError {
+				if err == nil {
+					t.Error("Expected error but got none")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				if result != tt.expected {
+					t.Errorf("FromShiftJIS() = %s; want %s", result, tt.expected)
+				}
+			}
+		})
+	}
+}
+
+func TestNewDatFileFinder(t *testing.T) {
+	finder := NewDatFileFinder()
+	if finder == nil {
+		t.Fatal("NewDatFileFinder() returned nil")
+	}
+
+	// DatFileFinder型であることを確認
+	// (NewDatFileFinderは*DatFileFinderを返すので、nilチェックで十分)
+}
+
+func TestDatFileFinder_Find(t *testing.T) {
+	t.Run("カレントディレクトリに1つのdatファイル", func(t *testing.T) {
+		// 一時ディレクトリを作成
+		tmpDir, err := os.MkdirTemp("", "test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(tmpDir)
+		
+		// 元のディレクトリを保存して、テスト後に復元
+		originalDir, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Chdir(originalDir)
+		
+		// テスト用ディレクトリに移動
+		if err := os.Chdir(tmpDir); err != nil {
+			t.Fatal(err)
+		}
+		
+		// テスト用の.datファイルを作成
+		testFile := "th06.dat"
+		if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		
+		finder := NewDatFileFinder()
+		result, err := finder.Find()
+		
+		if err != nil {
+			t.Fatalf("Find() failed: %v", err)
+		}
+		
+		if !strings.Contains(result, testFile) {
+			t.Errorf("Find() did not find %s, got %s", testFile, result)
+		}
+	})
+
+	t.Run("カレントディレクトリに複数のdatファイル", func(t *testing.T) {
+		// 一時ディレクトリを作成
+		tmpDir, err := os.MkdirTemp("", "test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(tmpDir)
+		
+		// 元のディレクトリを保存して、テスト後に復元
+		originalDir, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Chdir(originalDir)
+		
+		// テスト用ディレクトリに移動
+		if err := os.Chdir(tmpDir); err != nil {
+			t.Fatal(err)
+		}
+		
+		// 複数の.datファイルを作成
+		if err := os.WriteFile("th06.dat", []byte("test"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile("th07.dat", []byte("test"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		
+		finder := NewDatFileFinder()
+		_, err = finder.Find()
+		
+		if err == nil {
+			t.Error("Expected error for multiple dat files, but got none")
+		}
+		if !strings.Contains(err.Error(), "複数の.datファイル") {
+			t.Errorf("Error message should contain '複数の.datファイル', got %v", err)
+		}
+	})
+
+	t.Run("datファイルが見つからない", func(t *testing.T) {
+		// 一時ディレクトリを作成
+		tmpDir, err := os.MkdirTemp("", "test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(tmpDir)
+		
+		// 元のディレクトリを保存
+		originalDir, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Chdir(originalDir)
+		
+		// テスト用ディレクトリに移動
+		if err := os.Chdir(tmpDir); err != nil {
+			t.Fatal(err)
+		}
+		
+		finder := NewDatFileFinder()
+		result, err := finder.Find()
+		
+		if err != nil {
+			t.Errorf("Find() should not return error for no files, got %v", err)
+		}
+		
+		if result != "" {
+			t.Errorf("Find() should return empty string for no files, got %s", result)
+		}
+	})
+
+	t.Run("thbgm.datは除外される", func(t *testing.T) {
+		// 一時ディレクトリを作成
+		tmpDir, err := os.MkdirTemp("", "test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(tmpDir)
+		
+		// 元のディレクトリを保存
+		originalDir, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Chdir(originalDir)
+		
+		// テスト用ディレクトリに移動
+		if err := os.Chdir(tmpDir); err != nil {
+			t.Fatal(err)
+		}
+		
+		// thbgm.datファイルのみ作成
+		if err := os.WriteFile("thbgm.dat", []byte("test"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		
+		finder := NewDatFileFinder()
+		result, err := finder.Find()
+		
+		if err != nil {
+			t.Errorf("Find() should not return error, got %v", err)
+		}
+		
+		if result != "" {
+			t.Errorf("Find() should ignore thbgm.dat and return empty, got %s", result)
+		}
+	})
+}
+
+func TestDatFileFinder_findInDir(t *testing.T) {
+	t.Run("ディレクトリ内にサブディレクトリがある場合", func(t *testing.T) {
+		// 一時ディレクトリを作成
+		tmpDir, err := os.MkdirTemp("", "test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(tmpDir)
+		
+		// 元のディレクトリを保存
+		originalDir, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Chdir(originalDir)
+		
+		// テスト用ディレクトリに移動
+		if err := os.Chdir(tmpDir); err != nil {
+			t.Fatal(err)
+		}
+		
+		// サブディレクトリとファイルを作成
+		if err := os.Mkdir("subdir", 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile("th06.dat", []byte("test"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile("subdir/th07.dat", []byte("test"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		
+		finder := NewDatFileFinder()
+		result, err := finder.Find()
+		
+		if err != nil {
+			t.Fatalf("Find() failed: %v", err)
+		}
+		
+		// カレントディレクトリのファイルのみが見つかるはず
+		if !strings.Contains(result, "th06.dat") {
+			t.Errorf("Find() should find th06.dat in current dir, got %s", result)
+		}
+		if strings.Contains(result, "th07.dat") {
+			t.Errorf("Find() should not find th07.dat in subdir, got %s", result)
+		}
+	})
+}
+
+func TestSaveToFileWithBOM_ErrorCases(t *testing.T) {
+	// 無効なパスでのテスト
+	err := SaveToFileWithBOM("/nonexistent/dir/file.txt", "test")
+	if err == nil {
+		t.Error("SaveToFileWithBOM should return error for invalid path")
+	}
+
+	// 一時ディレクトリを作成
+	tmpDir, err := os.MkdirTemp("", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// ディレクトリ作成のパーミッションエラーをシミュレート
+	// （実際にはOSによってはエラーにならない場合がある）
+	restrictedDir := filepath.Join(tmpDir, "restricted")
+	if err := os.Mkdir(restrictedDir, 0000); err != nil {
+		t.Fatal(err)
+	}
+
+	testFile := filepath.Join(restrictedDir, "subdir", "file.txt")
+	err = SaveToFileWithBOM(testFile, "test")
+	// このテストはOS/環境によって結果が異なる可能性がある
+	if err == nil {
+		// パーミッションエラーが発生しない環境の場合はスキップ
+		t.Skip("Permission error test skipped on this environment")
 	}
 }
