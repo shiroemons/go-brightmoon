@@ -43,13 +43,13 @@ func (p *AdditionalInfoParser) CheckAdditionalInfo(archivePath string) models.Ad
 	// readme.txtを読み込む
 	readmeData, err := os.ReadFile(readmePath)
 	if err != nil {
-		return models.AdditionalInfo{Error: fmt.Errorf("readme.txtの読み込みに失敗しました: %w", err)}
+		return models.AdditionalInfo{Error: fmt.Errorf("%w: %w", ErrReadmeRead, err)}
 	}
 
 	// ShiftJISからUTF-8に変換
 	readmeText, err := fileutil.FromShiftJIS(string(readmeData))
 	if err != nil {
-		return models.AdditionalInfo{Error: fmt.Errorf("readme.txtの文字コード変換に失敗しました: %w", err)}
+		return models.AdditionalInfo{Error: fmt.Errorf("%w: %w", ErrReadmeEncodingConversion, err)}
 	}
 
 	// 2行目を取得

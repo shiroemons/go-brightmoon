@@ -58,7 +58,7 @@ func (p *THBGMParser) ParseMusicCmt(data string) ([]*models.Track, error) {
 	// Shift-JISからUTF-8に変換
 	text, err := fileutil.FromShiftJIS(data)
 	if err != nil {
-		return nil, fmt.Errorf("文字コード変換エラー: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrCharacterEncoding, err)
 	}
 
 	var tracks []*models.Track
@@ -86,7 +86,7 @@ func (p *THBGMParser) ParseMusicCmt(data string) ([]*models.Track, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("スキャンエラー: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrScanError, err)
 	}
 
 	return tracks, nil

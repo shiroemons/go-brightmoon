@@ -79,12 +79,12 @@ func (a *App) Run(ctx context.Context) error {
 	// データの解析
 	records, err := a.thbgmParser.ParseTHFmt(extractedData.THFmt)
 	if err != nil {
-		return fmt.Errorf("THFmtの解析に失敗しました: %w", err)
+		return fmt.Errorf("%w: %w", ErrParseTHFmt, err)
 	}
 
 	tracks, err := a.thbgmParser.ParseMusicCmt(extractedData.MusicCmt)
 	if err != nil {
-		return fmt.Errorf("MusicCmtの解析に失敗しました: %w", err)
+		return fmt.Errorf("%w: %w", ErrParseMusicCmt, err)
 	}
 
 	// 補足情報の取得
@@ -101,7 +101,7 @@ func (a *App) Run(ctx context.Context) error {
 	outputPath := filepath.Join(a.config.OutputDir, outputFilename)
 
 	if err := fileutil.SaveToFileWithBOM(outputPath, output); err != nil {
-		return fmt.Errorf("ファイルの保存に失敗しました: %w", err)
+		return fmt.Errorf("%w: %w", ErrSaveFile, err)
 	}
 
 	a.logger.Printf("データを %s に保存しました\n", outputPath)
@@ -153,10 +153,10 @@ func (a *App) processArchive(ctx context.Context, archivePath string) (models.Ex
 		if cmtData, ok := fileData[cmtFile]; ok {
 			musiccmt = string(cmtData)
 		} else {
-			return models.ExtractedData{}, fmt.Errorf("警告: %s が見つかりませんでした", cmtFile)
+			return models.ExtractedData{}, fmt.Errorf("%w: %s", ErrFileNotFound, cmtFile)
 		}
 	} else {
-		return models.ExtractedData{}, fmt.Errorf("アーカイブ内に %s が見つかりませんでした", fmtFile)
+		return models.ExtractedData{}, fmt.Errorf("%w: %s", ErrFileNotFound, fmtFile)
 	}
 
 	return models.ExtractedData{
@@ -202,12 +202,12 @@ func (a *App) processLocalFiles(ctx context.Context) (models.ExtractedData, erro
 	if a.fs.FileExists("thbgm.fmt") && a.fs.FileExists("musiccmt.txt") {
 		thfmt, err := a.fs.ReadFile("thbgm.fmt")
 		if err != nil {
-			return models.ExtractedData{}, fmt.Errorf("thbgm.fmtの読み込みに失敗しました: %w", err)
+			return models.ExtractedData{}, fmt.Errorf("%w: thbgm.fmt: %w", ErrReadFile, err)
 		}
 
 		musiccmtBytes, err := a.fs.ReadFile("musiccmt.txt")
 		if err != nil {
-			return models.ExtractedData{}, fmt.Errorf("musiccmt.txtの読み込みに失敗しました: %w", err)
+			return models.ExtractedData{}, fmt.Errorf("%w: musiccmt.txt: %w", ErrReadFile, err)
 		}
 
 		return models.ExtractedData{
@@ -221,12 +221,12 @@ func (a *App) processLocalFiles(ctx context.Context) (models.ExtractedData, erro
 	if a.fs.FileExists("thbgm_tr.fmt") && a.fs.FileExists("musiccmt_tr.txt") {
 		thfmt, err := a.fs.ReadFile("thbgm_tr.fmt")
 		if err != nil {
-			return models.ExtractedData{}, fmt.Errorf("thbgm_tr.fmtの読み込みに失敗しました: %w", err)
+			return models.ExtractedData{}, fmt.Errorf("%w: thbgm_tr.fmt: %w", ErrReadFile, err)
 		}
 
 		musiccmtBytes, err := a.fs.ReadFile("musiccmt_tr.txt")
 		if err != nil {
-			return models.ExtractedData{}, fmt.Errorf("musiccmt_tr.txtの読み込みに失敗しました: %w", err)
+			return models.ExtractedData{}, fmt.Errorf("%w: musiccmt_tr.txt: %w", ErrReadFile, err)
 		}
 
 		return models.ExtractedData{
@@ -236,7 +236,7 @@ func (a *App) processLocalFiles(ctx context.Context) (models.ExtractedData, erro
 		}, nil
 	}
 
-	return models.ExtractedData{}, fmt.Errorf("thbgm.fmt、musiccmt.txt または thbgm_tr.fmt、musiccmt_tr.txt のファイルがありません")
+	return models.ExtractedData{}, ErrNoMusicFiles
 }
 
 // generateOutput は出力内容を生成します

@@ -3,7 +3,6 @@ package archive
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -57,7 +56,7 @@ func (e *Extractor) ExtractFiles(ctx context.Context, archivePath string, archiv
 	// ファイルを検索して展開
 	findCount := 0
 	if !archive.EnumFirst() {
-		return nil, errors.New("アーカイブ内にファイルが見つかりません")
+		return nil, ErrNoFilesFound
 	}
 
 	do := true
@@ -77,7 +76,7 @@ func (e *Extractor) ExtractFiles(ctx context.Context, archivePath string, archiv
 				// ファイルをメモリに展開
 				data, err := e.extractToMemory(archive)
 				if err != nil {
-					return results, fmt.Errorf("%sの展開に失敗しました: %w", entryName, err)
+					return results, fmt.Errorf("%w: %s: %w", ErrExtractFailed, entryName, err)
 				}
 
 				results[entryName] = data

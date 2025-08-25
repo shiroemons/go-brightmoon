@@ -197,5 +197,5 @@ func (f *DatFileFinderWithFS) createMultipleFilesError(datFiles []string) error 
 	for i, path := range datFiles {
 		fileNames[i] = filepath.Base(path)
 	}
-	return fmt.Errorf("複数の.datファイルが見つかりました: %s。-archive フラグで使用するファイルを指定してください", strings.Join(fileNames, ", "))
+	return fmt.Errorf("%w: %s", ErrMultipleDatFiles, strings.Join(fileNames, ", "))
 }

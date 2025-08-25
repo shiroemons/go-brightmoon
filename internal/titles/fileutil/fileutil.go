@@ -40,25 +40,25 @@ func SaveToFileWithBOM(outputPath string, content string) error {
 	// 出力先ディレクトリを作成（存在しない場合）
 	dir := filepath.Dir(outputPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("出力先ディレクトリの作成に失敗しました: %w", err)
+		return fmt.Errorf("%w: %w", ErrCreateDirectory, err)
 	}
 
 	// ファイルを作成
 	file, err := os.Create(outputPath)
 	if err != nil {
-		return fmt.Errorf("ファイルの作成に失敗しました: %w", err)
+		return fmt.Errorf("%w: %w", ErrCreateFile, err)
 	}
 	defer file.Close()
 
 	// UTF-8 BOMを書き込む
 	utf8bom := []byte{0xEF, 0xBB, 0xBF}
 	if _, err := file.Write(utf8bom); err != nil {
-		return fmt.Errorf("BOMの書き込みに失敗しました: %w", err)
+		return fmt.Errorf("%w: %w", ErrWriteBOM, err)
 	}
 
 	// 内容を書き込む
 	if _, err := file.WriteString(content); err != nil {
-		return fmt.Errorf("内容の書き込みに失敗しました: %w", err)
+		return fmt.Errorf("%w: %w", ErrWriteContent, err)
 	}
 
 	return nil
@@ -114,7 +114,7 @@ func (f *DatFileFinder) Find() (string, error) {
 	// カレントディレクトリを取得
 	currentDir, err := os.Getwd()
 	if err != nil {
-		return "", fmt.Errorf("カレントディレクトリを取得できませんでした: %w", err)
+		return "", fmt.Errorf("%w: %w", ErrGetCurrentDirectory, err)
 	}
 
 	// まずカレントディレクトリを検索
@@ -137,7 +137,7 @@ func (f *DatFileFinder) Find() (string, error) {
 	// 実行ファイルのパスを取得
 	execPath, err := os.Executable()
 	if err != nil {
-		return "", fmt.Errorf("実行ファイルのパスを取得できませんでした: %w", err)
+		return "", fmt.Errorf("%w: %w", ErrGetExecutablePath, err)
 	}
 
 	// 実行ファイルのディレクトリを取得
@@ -171,7 +171,7 @@ func (f *DatFileFinder) findInDir(dir string) ([]string, error) {
 	// ディレクトリ内のファイル一覧を取得
 	files, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("ディレクトリ '%s' 内のファイル一覧を取得できませんでした: %w", dir, err)
+		return nil, fmt.Errorf("%w: %s: %w", ErrReadDirectory, dir, err)
 	}
 
 	// thxx.dat や thxxtr.dat パターンに一致するファイルを検索
@@ -200,5 +200,5 @@ func (f *DatFileFinder) createMultipleFilesError(datFiles []string) error {
 	for i, path := range datFiles {
 		fileNames[i] = filepath.Base(path)
 	}
-	return fmt.Errorf("複数の.datファイルが見つかりました: %s。-archive フラグで使用するファイルを指定してください", strings.Join(fileNames, ", "))
+	return fmt.Errorf("%w: %s", ErrMultipleDatFiles, strings.Join(fileNames, ", "))
 }

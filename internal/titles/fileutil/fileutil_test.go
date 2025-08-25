@@ -184,7 +184,7 @@ func TestFromShiftJIS(t *testing.T) {
 			// 不正なShift_JISシーケンス
 			input:    string([]byte{0xFF, 0xFF, 0xFF}),
 			expected: string([]rune{0xFFFD, 0xFFFD, 0xFFFD}), // Unicode replacement character
-			hasError: false, // transformは置換文字を使用するのでエラーにはならない
+			hasError: false,                                  // transformは置換文字を使用するのでエラーにはならない
 		},
 	}
 
@@ -225,32 +225,32 @@ func TestDatFileFinder_Find(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer os.RemoveAll(tmpDir)
-		
+
 		// 元のディレクトリを保存して、テスト後に復元
 		originalDir, err := os.Getwd()
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer os.Chdir(originalDir)
-		
+
 		// テスト用ディレクトリに移動
 		if err := os.Chdir(tmpDir); err != nil {
 			t.Fatal(err)
 		}
-		
+
 		// テスト用の.datファイルを作成
 		testFile := "th06.dat"
 		if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
 			t.Fatal(err)
 		}
-		
+
 		finder := NewDatFileFinder()
 		result, err := finder.Find()
-		
+
 		if err != nil {
 			t.Fatalf("Find() failed: %v", err)
 		}
-		
+
 		if !strings.Contains(result, testFile) {
 			t.Errorf("Find() did not find %s, got %s", testFile, result)
 		}
@@ -263,19 +263,19 @@ func TestDatFileFinder_Find(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer os.RemoveAll(tmpDir)
-		
+
 		// 元のディレクトリを保存して、テスト後に復元
 		originalDir, err := os.Getwd()
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer os.Chdir(originalDir)
-		
+
 		// テスト用ディレクトリに移動
 		if err := os.Chdir(tmpDir); err != nil {
 			t.Fatal(err)
 		}
-		
+
 		// 複数の.datファイルを作成
 		if err := os.WriteFile("th06.dat", []byte("test"), 0644); err != nil {
 			t.Fatal(err)
@@ -283,10 +283,10 @@ func TestDatFileFinder_Find(t *testing.T) {
 		if err := os.WriteFile("th07.dat", []byte("test"), 0644); err != nil {
 			t.Fatal(err)
 		}
-		
+
 		finder := NewDatFileFinder()
 		_, err = finder.Find()
-		
+
 		if err == nil {
 			t.Error("Expected error for multiple dat files, but got none")
 		}
@@ -302,26 +302,26 @@ func TestDatFileFinder_Find(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer os.RemoveAll(tmpDir)
-		
+
 		// 元のディレクトリを保存
 		originalDir, err := os.Getwd()
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer os.Chdir(originalDir)
-		
+
 		// テスト用ディレクトリに移動
 		if err := os.Chdir(tmpDir); err != nil {
 			t.Fatal(err)
 		}
-		
+
 		finder := NewDatFileFinder()
 		result, err := finder.Find()
-		
+
 		if err != nil {
 			t.Errorf("Find() should not return error for no files, got %v", err)
 		}
-		
+
 		if result != "" {
 			t.Errorf("Find() should return empty string for no files, got %s", result)
 		}
@@ -334,31 +334,31 @@ func TestDatFileFinder_Find(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer os.RemoveAll(tmpDir)
-		
+
 		// 元のディレクトリを保存
 		originalDir, err := os.Getwd()
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer os.Chdir(originalDir)
-		
+
 		// テスト用ディレクトリに移動
 		if err := os.Chdir(tmpDir); err != nil {
 			t.Fatal(err)
 		}
-		
+
 		// thbgm.datファイルのみ作成
 		if err := os.WriteFile("thbgm.dat", []byte("test"), 0644); err != nil {
 			t.Fatal(err)
 		}
-		
+
 		finder := NewDatFileFinder()
 		result, err := finder.Find()
-		
+
 		if err != nil {
 			t.Errorf("Find() should not return error, got %v", err)
 		}
-		
+
 		if result != "" {
 			t.Errorf("Find() should ignore thbgm.dat and return empty, got %s", result)
 		}
@@ -373,19 +373,19 @@ func TestDatFileFinder_findInDir(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer os.RemoveAll(tmpDir)
-		
+
 		// 元のディレクトリを保存
 		originalDir, err := os.Getwd()
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer os.Chdir(originalDir)
-		
+
 		// テスト用ディレクトリに移動
 		if err := os.Chdir(tmpDir); err != nil {
 			t.Fatal(err)
 		}
-		
+
 		// サブディレクトリとファイルを作成
 		if err := os.Mkdir("subdir", 0755); err != nil {
 			t.Fatal(err)
@@ -396,14 +396,14 @@ func TestDatFileFinder_findInDir(t *testing.T) {
 		if err := os.WriteFile("subdir/th07.dat", []byte("test"), 0644); err != nil {
 			t.Fatal(err)
 		}
-		
+
 		finder := NewDatFileFinder()
 		result, err := finder.Find()
-		
+
 		if err != nil {
 			t.Fatalf("Find() failed: %v", err)
 		}
-		
+
 		// カレントディレクトリのファイルのみが見つかるはず
 		if !strings.Contains(result, "th06.dat") {
 			t.Errorf("Find() should find th06.dat in current dir, got %s", result)
