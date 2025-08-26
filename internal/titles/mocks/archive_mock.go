@@ -17,42 +17,60 @@ func (f *MockArchiveFactory) NewYumemiArchive() pbgarc.PBGArchive {
 	if f.Error != nil {
 		return nil
 	}
-	return f.MockArchive
+	if f.MockArchive != nil {
+		return f.MockArchive
+	}
+	return NewSimpleMockArchive(map[string][]byte{})
 }
 
 func (f *MockArchiveFactory) NewKaguyaArchive() pbgarc.PBGArchive {
 	if f.Error != nil {
 		return nil
 	}
-	return f.MockArchive
+	if f.MockArchive != nil {
+		return f.MockArchive
+	}
+	return NewSimpleMockArchive(map[string][]byte{})
 }
 
 func (f *MockArchiveFactory) NewSuicaArchive() pbgarc.PBGArchive {
 	if f.Error != nil {
 		return nil
 	}
-	return f.MockArchive
+	if f.MockArchive != nil {
+		return f.MockArchive
+	}
+	return NewSimpleMockArchive(map[string][]byte{})
 }
 
 func (f *MockArchiveFactory) NewHinanawiArchive() pbgarc.PBGArchive {
 	if f.Error != nil {
 		return nil
 	}
-	return f.MockArchive
+	if f.MockArchive != nil {
+		return f.MockArchive
+	}
+	return NewSimpleMockArchive(map[string][]byte{})
 }
 
 func (f *MockArchiveFactory) NewMarisaArchive() pbgarc.PBGArchive {
 	if f.Error != nil {
 		return nil
 	}
-	return f.MockArchive
+	if f.MockArchive != nil {
+		return f.MockArchive
+	}
+	return NewSimpleMockArchive(map[string][]byte{})
 }
 
 func (f *MockArchiveFactory) NewKanakoArchive() pbgarc.PBGArchive {
 	if f.Error != nil {
 		return nil
 	}
-	return f.MockArchive
+	if f.MockArchive != nil {
+		return f.MockArchive
+	}
+	return NewSimpleMockArchive(map[string][]byte{})
 }
 
 // MockMemoryExtractor はテスト用のメモリ抽出モック
