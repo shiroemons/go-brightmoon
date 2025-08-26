@@ -2,6 +2,7 @@
 package interfaces
 
 import (
+	"context"
 	"io"
 
 	"github.com/shiroemons/go-brightmoon/internal/titles/models"
@@ -30,6 +31,16 @@ type FileInfo interface {
 type DirEntry interface {
 	Name() string
 	IsDir() bool
+}
+
+// Extractor はアーカイブからファイルを抽出するインターフェースです
+type Extractor interface {
+	ExtractFiles(ctx context.Context, archivePath string, archiveType int, targetFiles []string) (map[string][]byte, error)
+}
+
+// DatFileFinder は.datファイルを検索するインターフェースです
+type DatFileFinder interface {
+	Find() (string, error)
 }
 
 // ArchiveExtractor はアーカイブからファイルを抽出するインターフェース

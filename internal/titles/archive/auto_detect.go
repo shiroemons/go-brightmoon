@@ -197,67 +197,74 @@ func (e *Extractor) chooseFromCandidates(candidates []archiveCandidate, gameNum 
 
 	switch {
 	case gameNum >= 6 && gameNum <= 7:
-		// th06, th07
-		for _, c := range candidates {
-			if (gameNum == 6 && c.name == "Hinanawi") ||
-				(gameNum == 7 && c.name == "Yumemi") {
-				chosenArchive = c.archive
-				archiveName = c.name
-				break
-			}
-		}
-
+		chosenArchive, archiveName = e.chooseOldFormat(candidates, gameNum)
 	case gameNum == 8 || gameNum == 9:
-		// th08, th09 (Kaguya)
-		for _, c := range candidates {
-			if c.name == "Kaguya" {
-				chosenArchive = c.archive
-				archiveName = c.name
-
-				// サブタイプを設定
-				if kaguyaArchive, ok := chosenArchive.(*pbgarc.KaguyaArchive); ok {
-					if gameNum == 8 {
-						kaguyaArchive.SetArchiveType(0) // Imperishable Night
-						archiveType = 0
-						e.logger.Printf("Kaguya サブタイプを 0 に設定しました\n")
-					} else {
-						kaguyaArchive.SetArchiveType(1) // Shoot the Bullet
-						archiveType = 1
-						e.logger.Printf("Kaguya サブタイプを 1 に設定しました\n")
-					}
-				}
-				break
-			}
-		}
-
+		chosenArchive, archiveName, archiveType = e.chooseKaguya(candidates, gameNum)
 	case gameNum >= 10:
-		// th10+ (Kanako)
-		for _, c := range candidates {
-			if c.name == "Kanako" {
-				chosenArchive = c.archive
-				archiveName = c.name
-
-				// サブタイプを設定
-				if kanakoArchive, ok := chosenArchive.(*pbgarc.KanakoArchive); ok {
-					if gameNum >= 10 && gameNum <= 11 || gameNum == 95 {
-						kanakoArchive.SetArchiveType(0) // MoF/SA
-						archiveType = 0
-						e.logger.Printf("Kanako サブタイプを 0 に設定しました\n")
-					} else if gameNum == 12 {
-						kanakoArchive.SetArchiveType(1) // UFO/DS/FW
-						archiveType = 1
-						e.logger.Printf("Kanako サブタイプを 1 に設定しました\n")
-					} else if gameNum >= 13 {
-						// 東方神霊廟以降はタイプ2を使用
-						kanakoArchive.SetArchiveType(2) // TD+
-						archiveType = 2
-						e.logger.Printf("Kanako サブタイプを 2 に設定しました（TH13以降）\n")
-					}
-				}
-				break
-			}
-		}
+		chosenArchive, archiveName, archiveType = e.chooseKanako(candidates, gameNum)
 	}
 
 	return chosenArchive, archiveName, archiveType
+}
+
+// chooseOldFormat は旧形式（th06, th07）のアーカイブを選択します
+func (e *Extractor) chooseOldFormat(candidates []archiveCandidate, gameNum int) (pbgarc.PBGArchive, string) {
+	for _, c := range candidates {
+		if (gameNum == 6 && c.name == "Hinanawi") ||
+			(gameNum == 7 && c.name == "Yumemi") {
+			return c.archive, c.name
+		}
+	}
+	return nil, ""
+}
+
+// chooseKaguya はKaguya形式（th08, th09）のアーカイブを選択し、サブタイプを設定します
+func (e *Extractor) chooseKaguya(candidates []archiveCandidate, gameNum int) (pbgarc.PBGArchive, string, int) {
+	for _, c := range candidates {
+		if c.name == "Kaguya" {
+			// サブタイプを設定
+			if kaguyaArchive, ok := c.archive.(*pbgarc.KaguyaArchive); ok {
+				if gameNum == 8 {
+					kaguyaArchive.SetArchiveType(0) // Imperishable Night
+					e.logger.Printf("Kaguya サブタイプを 0 に設定しました\n")
+					return c.archive, c.name, 0
+				} else {
+					kaguyaArchive.SetArchiveType(1) // Shoot the Bullet
+					e.logger.Printf("Kaguya サブタイプを 1 に設定しました\n")
+					return c.archive, c.name, 1
+				}
+			}
+			return c.archive, c.name, -1
+		}
+	}
+	return nil, "", -1
+}
+
+// chooseKanako はKanako形式（th10以降）のアーカイブを選択し、サブタイプを設定します
+func (e *Extractor) chooseKanako(candidates []archiveCandidate, gameNum int) (pbgarc.PBGArchive, string, int) {
+	for _, c := range candidates {
+		if c.name == "Kanako" {
+			// サブタイプを設定
+			if kanakoArchive, ok := c.archive.(*pbgarc.KanakoArchive); ok {
+				archiveType := e.getKanakoSubType(gameNum)
+				kanakoArchive.SetArchiveType(archiveType)
+				e.logger.Printf("Kanako サブタイプを %d に設定しました\n", archiveType)
+				return c.archive, c.name, archiveType
+			}
+			return c.archive, c.name, -1
+		}
+	}
+	return nil, "", -1
+}
+
+// getKanakoSubType はゲーム番号からKanakoアーカイブのサブタイプを決定します
+func (e *Extractor) getKanakoSubType(gameNum int) int {
+	if gameNum >= 10 && gameNum <= 11 || gameNum == 95 {
+		return 0 // MoF/SA
+	} else if gameNum == 12 {
+		return 1 // UFO/DS/FW
+	} else if gameNum >= 13 {
+		return 2 // TD+ (東方神霊廟以降)
+	}
+	return 0
 }

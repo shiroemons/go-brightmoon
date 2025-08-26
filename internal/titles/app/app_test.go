@@ -171,3 +171,318 @@ func TestApp_generateOutput(t *testing.T) {
 		}
 	}
 }
+
+func TestApp_Run(t *testing.T) {
+	tests := []struct {
+		name          string
+		config        *config.Config
+		setupMock     func() *mocks.MockFileSystem
+		wantError     bool
+		errorContains string
+	}{
+		{
+			name: "ローカルファイル処理が成功",
+			config: &config.Config{
+				OutputDir: ".",
+			},
+			setupMock: func() *mocks.MockFileSystem {
+				fs := mocks.NewMockFileSystem()
+				// thbgm.fmtデータ（52バイトのヘッダー）
+				fmtData := make([]byte, 52)
+				copy(fmtData[0:], []byte("test.wav\x00"))  // ファイル名
+				// musiccmt.txtデータ（Shift-JISを想定）
+				cmtData := []byte("@bgm/test\n♪Test Track")
+				fs.Files = map[string][]byte{
+					"thbgm.fmt":    fmtData,
+					"musiccmt.txt": cmtData,
+				}
+				return fs
+			},
+			wantError: false,
+		},
+		{
+			name: "ローカルファイルが見つからない",
+			config: &config.Config{
+				OutputDir: ".",
+			},
+			setupMock: func() *mocks.MockFileSystem {
+				fs := mocks.NewMockFileSystem()
+				fs.Files = map[string][]byte{}
+				return fs
+			},
+			wantError:     true,
+			errorContains: "thbgm.fmt、musiccmt.txt または thbgm_tr.fmt、musiccmt_tr.txt のファイルがありません",
+		},
+		{
+			name: "出力ディレクトリ作成エラー",
+			config: &config.Config{
+				OutputDir: "/invalid/path/that/does/not/exist",
+			},
+			setupMock: func() *mocks.MockFileSystem {
+				fs := mocks.NewMockFileSystem()
+				// 有効なデータを設定
+				fmtData := make([]byte, 52)
+				copy(fmtData[0:], []byte("test.wav\x00"))
+				cmtData := []byte("@bgm/test\n♪Test Track")
+				fs.Files = map[string][]byte{
+					"thbgm.fmt":    fmtData,
+					"musiccmt.txt": cmtData,
+				}
+				return fs
+			},
+			wantError:     true,
+			errorContains: "ファイルの保存に失敗しました",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fs := tt.setupMock()
+			app := NewWithOptions(tt.config, Options{
+				FileSystem: fs,
+			})
+
+			ctx := context.Background()
+			err := app.Run(ctx)
+
+			if tt.wantError {
+				if err == nil {
+					t.Error("Expected error but got none")
+				} else if tt.errorContains != "" && !strings.Contains(err.Error(), tt.errorContains) {
+					t.Errorf("Error should contain %q, got %v", tt.errorContains, err)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("Run failed: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestApp_Run_WithArchive(t *testing.T) {
+	// モックエクストラクタを作成
+	mockExtractor := &mocks.MockExtractor{
+		ExtractedFiles: map[string][]byte{
+			"thbgm.fmt":    make([]byte, 52),
+			"musiccmt.txt": []byte("@bgm/test\n♪Test Track"),
+		},
+	}
+
+	// モックファイルシステムを作成
+	fs := mocks.NewMockFileSystem()
+	fs.Files = map[string][]byte{}
+
+	cfg := &config.Config{
+		ArchivePath: "test.dat",
+		ArchiveType: 6,
+		OutputDir:   ".",
+	}
+
+	app := NewWithOptions(cfg, Options{
+		FileSystem: fs,
+		Extractor:  mockExtractor,
+	})
+
+	ctx := context.Background()
+	err := app.Run(ctx)
+	if err != nil {
+		t.Fatalf("Run with archive failed: %v", err)
+	}
+}
+
+func TestApp_processArchive(t *testing.T) {
+	tests := []struct {
+		name          string
+		archivePath   string
+		archiveType   int
+		setupMock     func() *mocks.MockExtractor
+		wantError     bool
+		errorContains string
+	}{
+		{
+			name:        "製品版アーカイブの処理",
+			archivePath: "th06.dat",
+			archiveType: 6,
+			setupMock: func() *mocks.MockExtractor {
+				return &mocks.MockExtractor{
+					ExtractedFiles: map[string][]byte{
+						"thbgm.fmt":    make([]byte, 52),
+						"musiccmt.txt": []byte("test"),
+					},
+				}
+			},
+			wantError: false,
+		},
+		{
+			name:        "体験版アーカイブの処理",
+			archivePath: "th06tr.dat",
+			archiveType: 6,
+			setupMock: func() *mocks.MockExtractor {
+				return &mocks.MockExtractor{
+					ExtractedFiles: map[string][]byte{
+						"thbgm_tr.fmt":    make([]byte, 52),
+						"musiccmt_tr.txt": []byte("test"),
+					},
+				}
+			},
+			wantError: false,
+		},
+		{
+			name:        "抽出エラー",
+			archivePath: "th06.dat",
+			archiveType: 6,
+			setupMock: func() *mocks.MockExtractor {
+				return &mocks.MockExtractor{
+					Error: errors.New("extract failed"),
+				}
+			},
+			wantError:     true,
+			errorContains: "アーカイブからのファイル抽出中にエラー",
+		},
+		{
+			name:        "ファイルが見つからない",
+			archivePath: "th06.dat",
+			archiveType: 6,
+			setupMock: func() *mocks.MockExtractor {
+				return &mocks.MockExtractor{
+					ExtractedFiles: map[string][]byte{},
+				}
+			},
+			wantError:     true,
+			errorContains: "ファイルが見つかりません",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockExtractor := tt.setupMock()
+			cfg := &config.Config{
+				ArchiveType: tt.archiveType,
+			}
+			app := NewWithOptions(cfg, Options{
+				Extractor: mockExtractor,
+			})
+
+			ctx := context.Background()
+			_, err := app.processArchive(ctx, tt.archivePath)
+
+			if tt.wantError {
+				if err == nil {
+					t.Error("Expected error but got none")
+				}
+				if tt.errorContains != "" && !strings.Contains(err.Error(), tt.errorContains) {
+					t.Errorf("Error should contain %q, got %v", tt.errorContains, err)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("processArchive failed: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestApp_processArchive_ContextCancel(t *testing.T) {
+	mockExtractor := &mocks.MockExtractor{
+		ExtractedFiles: map[string][]byte{
+			"thbgm.fmt":    make([]byte, 52),
+			"musiccmt.txt": []byte("test"),
+		},
+	}
+
+	cfg := &config.Config{
+		ArchiveType: 6,
+	}
+	app := NewWithOptions(cfg, Options{
+		Extractor: mockExtractor,
+	})
+
+	// キャンセル済みのコンテキストを作成
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := app.processArchive(ctx, "test.dat")
+	if err != context.Canceled {
+		t.Errorf("Expected context.Canceled error, got %v", err)
+	}
+}
+
+func TestApp_processAutoDetect(t *testing.T) {
+	tests := []struct {
+		name      string
+		setupMock func() (*mocks.MockFileSystem, *mocks.MockDatFileFinder, *mocks.MockExtractor)
+		wantError bool
+	}{
+		{
+			name: "自動検出でdatファイルを発見",
+			setupMock: func() (*mocks.MockFileSystem, *mocks.MockDatFileFinder, *mocks.MockExtractor) {
+				fs := mocks.NewMockFileSystem()
+				finder := &mocks.MockDatFileFinder{
+					FoundFile: "th06.dat",
+				}
+				extractor := &mocks.MockExtractor{
+					ExtractedFiles: map[string][]byte{
+						"thbgm.fmt":    make([]byte, 52),
+						"musiccmt.txt": []byte("test"),
+					},
+				}
+				return fs, finder, extractor
+			},
+			wantError: false,
+		},
+		{
+			name: "ローカルファイルで処理",
+			setupMock: func() (*mocks.MockFileSystem, *mocks.MockDatFileFinder, *mocks.MockExtractor) {
+				fs := mocks.NewMockFileSystem()
+				fs.Files = map[string][]byte{
+					"thbgm.fmt":    make([]byte, 52),
+					"musiccmt.txt": []byte("test"),
+				}
+				finder := &mocks.MockDatFileFinder{
+					FoundFile: "", // datファイルなし
+				}
+				extractor := &mocks.MockExtractor{}
+				return fs, finder, extractor
+			},
+			wantError: false,
+		},
+		{
+			name: "datファイル検出エラー",
+			setupMock: func() (*mocks.MockFileSystem, *mocks.MockDatFileFinder, *mocks.MockExtractor) {
+				fs := mocks.NewMockFileSystem()
+				finder := &mocks.MockDatFileFinder{
+					Error: errors.New("multiple dat files found"),
+				}
+				extractor := &mocks.MockExtractor{}
+				return fs, finder, extractor
+			},
+			wantError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fs, finder, extractor := tt.setupMock()
+			cfg := &config.Config{}
+			app := NewWithOptions(cfg, Options{
+				FileSystem:    fs,
+				DatFileFinder: finder,
+				Extractor:     extractor,
+			})
+
+			ctx := context.Background()
+			_, err := app.processAutoDetect(ctx)
+
+			if tt.wantError {
+				if err == nil {
+					t.Error("Expected error but got none")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("processAutoDetect failed: %v", err)
+				}
+			}
+		})
+	}
+}

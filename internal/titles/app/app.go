@@ -20,16 +20,18 @@ import (
 type App struct {
 	config               *config.Config
 	logger               *config.DebugLogger
-	extractor            *archive.Extractor
+	extractor            interfaces.Extractor
 	thbgmParser          *parser.THBGMParser
 	additionalInfoParser *parser.AdditionalInfoParser
-	datFileFinder        *fileutil.DatFileFinder
+	datFileFinder        interfaces.DatFileFinder
 	fs                   interfaces.FileSystem
 }
 
 // Options はAppの設定オプション
 type Options struct {
-	FileSystem interfaces.FileSystem
+	FileSystem    interfaces.FileSystem
+	Extractor     interfaces.Extractor
+	DatFileFinder interfaces.DatFileFinder
 }
 
 // New は新しいAppを作成します
@@ -47,13 +49,29 @@ func NewWithOptions(cfg *config.Config, opts Options) *App {
 		fs = fileutil.NewOSFileSystem()
 	}
 
+	// デフォルトのExtractorを設定
+	var extractor interfaces.Extractor
+	if opts.Extractor != nil {
+		extractor = opts.Extractor
+	} else {
+		extractor = archive.NewExtractor(logger)
+	}
+
+	// デフォルトのDatFileFinderを設定
+	var datFileFinder interfaces.DatFileFinder
+	if opts.DatFileFinder != nil {
+		datFileFinder = opts.DatFileFinder
+	} else {
+		datFileFinder = fileutil.NewDatFileFinder()
+	}
+
 	return &App{
 		config:               cfg,
 		logger:               logger,
-		extractor:            archive.NewExtractor(logger),
+		extractor:            extractor,
 		thbgmParser:          parser.NewTHBGMParser(),
 		additionalInfoParser: parser.NewAdditionalInfoParser(),
-		datFileFinder:        fileutil.NewDatFileFinder(),
+		datFileFinder:        datFileFinder,
 		fs:                   fs,
 	}
 }
