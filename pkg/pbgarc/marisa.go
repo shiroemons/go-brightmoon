@@ -59,6 +59,16 @@ func NewMarisaArchive() *MarisaArchive {
 	}
 }
 
+// Close はアーカイブファイルを閉じます
+func (a *MarisaArchive) Close() error {
+	if a.file != nil {
+		err := a.file.Close()
+		a.file = nil
+		return err
+	}
+	return nil
+}
+
 // Open はアーカイブファイルを開きます (C++版のロジックに合わせて修正)
 func (a *MarisaArchive) Open(filename string) (bool, error) {
 	file, err := os.Open(filename)

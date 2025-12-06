@@ -99,3 +99,47 @@ func TestGetArchiveTypeOptions(t *testing.T) {
 		}
 	}
 }
+
+// TestClose はClose()メソッドのテストです
+func TestHinanawiArchive_Close(t *testing.T) {
+	archive := NewHinanawiArchive()
+	// ファイルが開かれていない状態でCloseしてもエラーにならない
+	if err := archive.Close(); err != nil {
+		t.Errorf("Close() on unopened archive returned error: %v", err)
+	}
+}
+
+func TestMarisaArchive_Close(t *testing.T) {
+	archive := NewMarisaArchive()
+	if err := archive.Close(); err != nil {
+		t.Errorf("Close() on unopened archive returned error: %v", err)
+	}
+}
+
+func TestYumemiArchive_Close(t *testing.T) {
+	archive := NewYumemiArchive()
+	if err := archive.Close(); err != nil {
+		t.Errorf("Close() on unopened archive returned error: %v", err)
+	}
+}
+
+func TestKaguyaArchive_Close(t *testing.T) {
+	archive := NewKaguyaArchive()
+	if err := archive.Close(); err != nil {
+		t.Errorf("Close() on unopened archive returned error: %v", err)
+	}
+}
+
+func TestKanakoArchive_Close(t *testing.T) {
+	archive := NewKanakoArchive()
+	if err := archive.Close(); err != nil {
+		t.Errorf("Close() on unopened archive returned error: %v", err)
+	}
+}
+
+func TestSuicaArchive_Close(t *testing.T) {
+	archive := NewSuicaArchive()
+	if err := archive.Close(); err != nil {
+		t.Errorf("Close() on unopened archive returned error: %v", err)
+	}
+}

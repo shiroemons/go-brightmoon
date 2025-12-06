@@ -58,6 +58,16 @@ func NewHinanawiArchive() *HinanawiArchive {
 	}
 }
 
+// Close はアーカイブファイルを閉じます
+func (a *HinanawiArchive) Close() error {
+	if a.file != nil {
+		err := a.file.Close()
+		a.file = nil
+		return err
+	}
+	return nil
+}
+
 // Open はアーカイブファイルを開きます (C++版のロジックに合わせて修正)
 func (a *HinanawiArchive) Open(filename string) (bool, error) {
 	file, err := os.Open(filename)

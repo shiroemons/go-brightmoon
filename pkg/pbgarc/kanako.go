@@ -128,6 +128,16 @@ func NewKanakoArchive() *KanakoArchive {
 	}
 }
 
+// Close はアーカイブファイルを閉じます
+func (a *KanakoArchive) Close() error {
+	if a.file != nil {
+		err := a.file.Close()
+		a.file = nil
+		return err
+	}
+	return nil
+}
+
 // ArchiveType定数
 const (
 	ARCHTYPE_MOF       = 0 // TH10 風神録/TH11 地霊殿

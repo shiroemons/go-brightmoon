@@ -54,6 +54,16 @@ func NewSuicaArchive() *SuicaArchive {
 	}
 }
 
+// Close はアーカイブファイルを閉じます
+func (a *SuicaArchive) Close() error {
+	if a.file != nil {
+		err := a.file.Close()
+		a.file = nil
+		return err
+	}
+	return nil
+}
+
 // Open はアーカイブファイルを開きます
 func (a *SuicaArchive) Open(filename string) (bool, error) {
 	file, err := os.Open(filename)

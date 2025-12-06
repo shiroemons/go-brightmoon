@@ -120,6 +120,16 @@ func NewKaguyaArchive() *KaguyaArchive {
 	}
 }
 
+// Close はアーカイブファイルを閉じます
+func (a *KaguyaArchive) Close() error {
+	if a.file != nil {
+		err := a.file.Close()
+		a.file = nil
+		return err
+	}
+	return nil
+}
+
 // SetArchiveType はアーカイブタイプを設定します
 // type=0: 永夜抄用
 // type=1: StB用 (弾幕アマノジャク)

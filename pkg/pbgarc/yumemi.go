@@ -64,6 +64,16 @@ func NewYumemiArchive() *YumemiArchive {
 	}
 }
 
+// Close はアーカイブファイルを閉じます
+func (a *YumemiArchive) Close() error {
+	if a.file != nil {
+		err := a.file.Close()
+		a.file = nil
+		return err
+	}
+	return nil
+}
+
 // isfchr は C++ 版の ValidateName で使われる文字チェック関数
 func isfchr(c byte) bool {
 	return c >= ' ' && c != '+' && c != ',' && c != ';' && c != '=' && c != '[' && c != ']' && c != '.'
