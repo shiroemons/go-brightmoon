@@ -114,15 +114,17 @@ func (a *App) Run(ctx context.Context) error {
 	// 出力の生成
 	output := a.generateOutput(records, tracks, additionalInfo)
 
-	// ファイル名の生成と保存
-	outputFilename := fileutil.GenerateOutputFilename(extractedData.InputFile)
-	outputPath := filepath.Join(a.config.OutputDir, outputFilename)
+	// ファイル名の生成と保存（ドライランモードでない場合のみ）
+	if !a.config.DryRun {
+		outputFilename := fileutil.GenerateOutputFilename(extractedData.InputFile)
+		outputPath := filepath.Join(a.config.OutputDir, outputFilename)
 
-	if err := fileutil.SaveToFileWithBOM(outputPath, output); err != nil {
-		return fmt.Errorf("%w: %w", ErrSaveFile, err)
+		if err := fileutil.SaveToFileWithBOM(outputPath, output); err != nil {
+			return fmt.Errorf("%w: %w", ErrSaveFile, err)
+		}
+
+		a.logger.Printf("データを %s に保存しました\n", outputPath)
 	}
-
-	a.logger.Printf("データを %s に保存しました\n", outputPath)
 
 	// 標準出力にも表示
 	fmt.Println(output)
