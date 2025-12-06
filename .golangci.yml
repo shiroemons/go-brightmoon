@@ -1,0 +1,21 @@
+version: "2"
+
+linters:
+  default: standard
+  disable:
+    - errcheck      # エラー戻り値チェック（別途修正予定）
+    - ineffassign   # 無効な代入（別途修正予定）
+  settings:
+    staticcheck:
+      checks:
+        - "all"
+        - "-SA4006"   # value never used（別途修正予定）
+        - "-SA9003"   # empty branch（別途修正予定）
+        - "-ST1003"   # ALL_CAPS naming（別途修正予定）
+        - "-ST1023"   # omit type from declaration（別途修正予定）
+        - "-QF*"      # quickfix suggestions（別途修正予定）
+
+output:
+  formats:
+    text:
+      path: stdout
