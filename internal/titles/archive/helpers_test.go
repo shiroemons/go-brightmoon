@@ -95,13 +95,13 @@ func TestChooseKaguya(t *testing.T) {
 			wantType: 0,
 		},
 		{
-			name: "th09でタイプ1",
+			name: "th09でタイプ2",
 			candidates: []archiveCandidate{
 				{name: "Kaguya", archive: pbgarc.NewKaguyaArchive()},
 			},
 			gameNum:  9,
 			wantName: "Kaguya",
-			wantType: 1,
+			wantType: 2,
 		},
 		{
 			name:       "Kaguya候補なし",

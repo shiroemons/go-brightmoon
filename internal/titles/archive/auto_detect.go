@@ -224,15 +224,18 @@ func (e *Extractor) chooseKaguya(candidates []archiveCandidate, gameNum int) (pb
 		if c.name == "Kaguya" {
 			// サブタイプを設定
 			if kaguyaArchive, ok := c.archive.(*pbgarc.KaguyaArchive); ok {
-				if gameNum == 8 {
-					kaguyaArchive.SetArchiveType(0) // Imperishable Night
-					e.logger.Printf("Kaguya サブタイプを 0 に設定しました\n")
-					return c.archive, c.name, 0
-				} else {
-					kaguyaArchive.SetArchiveType(1) // Shoot the Bullet
-					e.logger.Printf("Kaguya サブタイプを 1 に設定しました\n")
-					return c.archive, c.name, 1
+				var archiveType int
+				switch gameNum {
+				case 8:
+					archiveType = 0 // Imperishable Night (永夜抄)
+				case 9:
+					archiveType = 2 // Phantasmagoria of Flower View (花映塚)
+				default:
+					archiveType = 1 // Shoot the Bullet (弾幕アマノジャク)
 				}
+				kaguyaArchive.SetArchiveType(archiveType)
+				e.logger.Printf("Kaguya サブタイプを %d に設定しました\n", archiveType)
+				return c.archive, c.name, archiveType
 			}
 			return c.archive, c.name, -1
 		}

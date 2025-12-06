@@ -98,7 +98,7 @@ var cryprm1 = []CryptParam{
 	{0x2a, 0x99, 0x37, 0x400, 0x1000},
 }
 
-// StB用暗号化パラメータ
+// StB用暗号化パラメータ (弾幕アマノジャク TH143)
 var cryprm2 = []CryptParam{
 	{0x4d, 0x1b, 0x37, 0x40, 0x2800},
 	{0x54, 0x51, 0xe9, 0x40, 0x3000},
@@ -108,6 +108,18 @@ var cryprm2 = []CryptParam{
 	{0x57, 0x12, 0x34, 0x400, 0x400},
 	{0x2d, 0x35, 0x97, 0x80, 0x2800},
 	{0x2a, 0x99, 0x37, 0x400, 0x1000},
+}
+
+// 東方花映塚 (TH09) 用暗号化パラメータ
+var cryprm3 = []CryptParam{
+	{0x4d, 0x1b, 0x37, 0x40, 0x2800},  // M(.msg)
+	{0x54, 0x51, 0xe9, 0x40, 0x3000},  // T(.txt)
+	{0x41, 0xc1, 0x51, 0x400, 0x400},  // A(.anm)
+	{0x4a, 0x03, 0x19, 0x400, 0x400},  // J(.jpg)
+	{0x45, 0xab, 0xcd, 0x200, 0x1000}, // E(.ecl)
+	{0x57, 0x12, 0x34, 0x400, 0x400},  // W(.wav)
+	{0x2d, 0x35, 0x97, 0x80, 0x2800},  // -(etc)
+	{0x2a, 0x99, 0x37, 0x400, 0x1000}, // *(unknown)
 }
 
 // NewKaguyaArchive は新しいKaguyaArchiveを作成します
@@ -131,14 +143,20 @@ func (a *KaguyaArchive) Close() error {
 }
 
 // SetArchiveType はアーカイブタイプを設定します
-// type=0: 永夜抄用
-// type=1: StB用 (弾幕アマノジャク)
+// type=0: 永夜抄用 (TH08)
+// type=1: StB用 (弾幕アマノジャク TH143)
+// type=2: 花映塚用 (TH09)
 func (a *KaguyaArchive) SetArchiveType(archType int) {
 	a.archType = archType
-	if archType == 0 {
+	switch archType {
+	case 0:
+		a.cryprm = cryprm1 // 永夜抄 (TH08)
+	case 1:
+		a.cryprm = cryprm2 // 弾幕アマノジャク (TH143)
+	case 2:
+		a.cryprm = cryprm3 // 花映塚 (TH09)
+	default:
 		a.cryprm = cryprm1
-	} else {
-		a.cryprm = cryprm2
 	}
 }
 
