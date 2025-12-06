@@ -35,7 +35,7 @@ func NewMockPBGArchive(files map[string][]byte) *MockPBGArchive {
 	for name := range files {
 		fileList = append(fileList, name)
 	}
-	
+
 	return &MockPBGArchive{
 		Files:          files,
 		FileList:       fileList,
@@ -121,7 +121,7 @@ func (m *MockPBGArchive) Extract(w io.Writer, callback func(string, interface{})
 	if !m.ExtractSuccess {
 		return false
 	}
-	
+
 	if data, ok := m.Files[m.CurrentFile]; ok {
 		if callback != nil {
 			if !callback(m.CurrentFile, user) {

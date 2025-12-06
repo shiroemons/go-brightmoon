@@ -22,16 +22,16 @@ const (
 	kaguyaListSizeOffset   = 567891
 
 	// ヘッダサイズと暗号化パラメータ
-	kaguyaHeaderSize      = 12
-	kaguyaHeaderKey       = 0x1b
-	kaguyaHeaderStep      = 0x37
-	kaguyaHeaderBlock     = 0x0c
-	kaguyaHeaderLimit     = 0x400
-	kaguyaListKey         = 62  // 0x3e
-	kaguyaListStep        = 155 // 0x9b
-	kaguyaListBlock       = 0x80
-	kaguyaListLimit       = 0x400
-	kaguyaOrigSizeAdjust  = 4
+	kaguyaHeaderSize     = 12
+	kaguyaHeaderKey      = 0x1b
+	kaguyaHeaderStep     = 0x37
+	kaguyaHeaderBlock    = 0x0c
+	kaguyaHeaderLimit    = 0x400
+	kaguyaListKey        = 62  // 0x3e
+	kaguyaListStep       = 155 // 0x9b
+	kaguyaListBlock      = 0x80
+	kaguyaListLimit      = 0x400
+	kaguyaOrigSizeAdjust = 4
 )
 
 // CryptParam は暗号化パラメータを表します

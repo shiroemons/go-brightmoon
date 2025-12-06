@@ -59,11 +59,11 @@ func TestChooseOldFormat(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			archive, name := extractor.chooseOldFormat(tt.candidates, tt.gameNum)
-			
+
 			if name != tt.wantName {
 				t.Errorf("Expected name %q, got %q", tt.wantName, name)
 			}
-			
+
 			if tt.wantNil && archive != nil {
 				t.Error("Expected nil archive but got non-nil")
 			}
@@ -115,7 +115,7 @@ func TestChooseKaguya(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			archive, name, archiveType := extractor.chooseKaguya(tt.candidates, tt.gameNum)
-			
+
 			if name != tt.wantName {
 				t.Errorf("Expected name %q, got %q", tt.wantName, name)
 			}
@@ -191,7 +191,7 @@ func TestChooseKanako(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			archive, name, archiveType := extractor.chooseKanako(tt.candidates, tt.gameNum)
-			
+
 			if name != tt.wantName {
 				t.Errorf("Expected name %q, got %q", tt.wantName, name)
 			}
@@ -313,7 +313,7 @@ func TestChooseFromCandidates(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			archive, name, archiveType := extractor.chooseFromCandidates(tt.candidates, tt.gameNum)
-			
+
 			if name != tt.wantName {
 				t.Errorf("Expected name %q, got %q", tt.wantName, name)
 			}
