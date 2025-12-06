@@ -291,6 +291,9 @@ func guessArchiveInfoFromName(filename string) (expectedFormatName string, expec
 	case "th08":
 		expectedFormatName = "Kaguya"
 		expectedSubType = 0 // Imperishable Night
+	case "th09":
+		expectedFormatName = "Kaguya"
+		expectedSubType = 2 // Phantasmagoria of Flower View
 	case "th085": // 弾幕アマノジャクはファイル名パターンが異なる場合があるため注意
 		expectedFormatName = "Kaguya"
 		expectedSubType = 1 // Shoot the Bullet / Impossible Spell Card

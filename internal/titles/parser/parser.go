@@ -71,7 +71,10 @@ func (p *THBGMParser) ParseMusicCmt(data string) ([]*models.Track, error) {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "@bgm/") {
 			fileName = strings.Replace(line, "@bgm/", "", -1)
-			if !strings.HasSuffix(fileName, ".wav") {
+			// .mid を .wav に置き換え（th09対応）
+			if strings.HasSuffix(fileName, ".mid") {
+				fileName = strings.TrimSuffix(fileName, ".mid") + ".wav"
+			} else if !strings.HasSuffix(fileName, ".wav") {
 				fileName = fileName + ".wav"
 			}
 		}
@@ -82,6 +85,19 @@ func (p *THBGMParser) ParseMusicCmt(data string) ([]*models.Track, error) {
 				Title:    title,
 			}
 			tracks = append(tracks, track)
+		}
+		// th09対応: "No.X  曲名" 形式
+		if strings.HasPrefix(line, "No.") && fileName != "" {
+			// "No.1  曲名" から曲名を抽出（"No.X"の後の空白を除去）
+			parts := strings.SplitN(line, " ", 2)
+			if len(parts) >= 2 {
+				title = strings.TrimSpace(parts[1])
+				track := &models.Track{
+					FileName: fileName,
+					Title:    title,
+				}
+				tracks = append(tracks, track)
+			}
 		}
 	}
 

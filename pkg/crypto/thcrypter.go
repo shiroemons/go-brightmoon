@@ -81,11 +81,13 @@ func THCrypter(in io.Reader, out io.Writer, size int, key byte, step byte, block
 		remainingSize -= processBlockSize
 	}
 
-	// 残りの addup バイトをそのままコピー
-	if addup > 0 {
-		restBuf := make([]byte, addup)
+	// limit を超えた部分と addup バイトをそのままコピー
+	// (limit 以降のデータは暗号化されていないため、そのままコピー)
+	restSize := remainingSize + addup
+	if restSize > 0 {
+		restBuf := make([]byte, restSize)
 		n, err := io.ReadFull(in, restBuf)
-		if err != nil || n != addup { // 厳密にチェック
+		if err != nil || n != restSize {
 			return false
 		}
 		if _, err := out.Write(restBuf); err != nil {
