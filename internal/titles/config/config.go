@@ -15,6 +15,7 @@ type Config struct {
 	ArchiveType int
 	OutputDir   string
 	DebugMode   bool
+	DryRun      bool
 	ShowVersion bool
 }
 
@@ -36,6 +37,9 @@ func ParseFlags() *Config {
 		fmt.Fprintln(flag.CommandLine.Output(), "    \toutput directory for the generated files (default \".\")")
 		fmt.Fprintln(flag.CommandLine.Output(), "  -t int")
 		fmt.Fprintln(flag.CommandLine.Output(), "    \tarchive type (e.g., 0 for Imperishable Night, see README for details) (default -1)")
+		fmt.Fprintln(flag.CommandLine.Output(), "  --dry-run")
+		fmt.Fprintln(flag.CommandLine.Output(), "    \tperform a dry run without writing output files")
+		fmt.Fprintln(flag.CommandLine.Output(), "  -n\tperform a dry run without writing output files (shorthand)")
 		fmt.Fprintln(flag.CommandLine.Output(), "  --version")
 		fmt.Fprintln(flag.CommandLine.Output(), "    \tshow version information")
 		fmt.Fprintln(flag.CommandLine.Output(), "  -v\tshow version information (shorthand)")
@@ -54,6 +58,10 @@ func ParseFlags() *Config {
 	// デバッグモード
 	flag.BoolVar(&config.DebugMode, "debug", false, "enable debug output")
 	flag.BoolVar(&config.DebugMode, "d", false, "enable debug output (shorthand)")
+
+	// ドライランモード
+	flag.BoolVar(&config.DryRun, "dry-run", false, "perform a dry run without writing output files")
+	flag.BoolVar(&config.DryRun, "n", false, "perform a dry run without writing output files (shorthand)")
 
 	// バージョン表示
 	flag.BoolVar(&config.ShowVersion, "version", false, "show version information")
