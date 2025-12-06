@@ -120,7 +120,7 @@ func (a *SimpleMockArchive) Open(filename string) (bool, error) {
 	return true, nil
 }
 
-func (a *SimpleMockArchive) Close() {}
+func (a *SimpleMockArchive) Close() error { return nil }
 
 func (a *SimpleMockArchive) EnumFirst() bool {
 	if a.ShouldFailFirst || len(a.FileNames) == 0 {

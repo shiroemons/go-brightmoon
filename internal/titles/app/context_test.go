@@ -146,7 +146,7 @@ func TestApp_processLocalFiles_LongRunning(t *testing.T) {
 
 	// 途中でキャンセルされるコンテキスト
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	// goroutineで少し遅延してからキャンセル
 	go func() {
 		time.Sleep(5 * time.Millisecond)
@@ -208,9 +208,9 @@ func TestApp_Run_WithValue(t *testing.T) {
 	// context.WithValueを使用したテスト
 	type contextKey string
 	const testKey contextKey = "testKey"
-	
+
 	ctx := context.WithValue(context.Background(), testKey, "testValue")
-	
+
 	fs := mocks.NewMockFileSystem()
 	fmtData := make([]byte, 52)
 	copy(fmtData[0:], []byte("test.wav\x00"))

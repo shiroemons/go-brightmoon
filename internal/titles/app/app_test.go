@@ -189,7 +189,7 @@ func TestApp_Run(t *testing.T) {
 				fs := mocks.NewMockFileSystem()
 				// thbgm.fmtデータ（52バイトのヘッダー）
 				fmtData := make([]byte, 52)
-				copy(fmtData[0:], []byte("test.wav\x00"))  // ファイル名
+				copy(fmtData[0:], []byte("test.wav\x00")) // ファイル名
 				// musiccmt.txtデータ（Shift-JISを想定）
 				cmtData := []byte("@bgm/test\n♪Test Track")
 				fs.Files = map[string][]byte{

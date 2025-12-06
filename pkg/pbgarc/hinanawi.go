@@ -58,6 +58,16 @@ func NewHinanawiArchive() *HinanawiArchive {
 	}
 }
 
+// Close はアーカイブファイルを閉じます
+func (a *HinanawiArchive) Close() error {
+	if a.file != nil {
+		err := a.file.Close()
+		a.file = nil
+		return err
+	}
+	return nil
+}
+
 // Open はアーカイブファイルを開きます (C++版のロジックに合わせて修正)
 func (a *HinanawiArchive) Open(filename string) (bool, error) {
 	file, err := os.Open(filename)
@@ -66,49 +76,49 @@ func (a *HinanawiArchive) Open(filename string) (bool, error) {
 	}
 	a.file = file
 
+	// エラー時にクリーンアップするためのフラグ
+	success := false
+	defer func() {
+		if !success {
+			a.file.Close()
+		}
+	}()
+
 	// ファイルサイズを取得
 	fileInfo, err := file.Stat()
 	if err != nil {
-		a.file.Close()
 		return false, err
 	}
 	fileSize := fileInfo.Size()
 	if fileSize < 6 {
-		a.file.Close()
 		return false, errors.New("file size too small")
 	}
 
 	// ヘッダ読み込み (list_count, list_size)
 	header := make([]byte, 6)
 	if _, err := io.ReadFull(a.file, header); err != nil {
-		a.file.Close()
 		return false, fmt.Errorf("failed to read header: %w", err)
 	}
 	var listCount uint16
 	var listSize uint32
 	headerReader := bytes.NewReader(header)
 	if err := binary.Read(headerReader, binary.LittleEndian, &listCount); err != nil {
-		a.file.Close()
 		return false, err
 	}
 	if err := binary.Read(headerReader, binary.LittleEndian, &listSize); err != nil {
-		a.file.Close()
 		return false, err
 	}
 
 	if listCount == 0 || listSize == 0 {
-		a.file.Close()
 		return false, errors.New("invalid list count or size in header")
 	}
 	if fileSize < 6+int64(listSize) {
-		a.file.Close()
 		return false, fmt.Errorf("file size %d is smaller than header+list_size %d", fileSize, 6+listSize)
 	}
 
 	// リストデータを読み込み
 	listBuf := make([]byte, listSize)
 	if _, err := io.ReadFull(a.file, listBuf); err != nil {
-		a.file.Close()
 		return false, fmt.Errorf("failed to read list data: %w", err)
 	}
 
@@ -136,11 +146,11 @@ func (a *HinanawiArchive) Open(filename string) (bool, error) {
 		a.entries = make([]HinanawiEntry, 0, listCount) // スライスを再初期化
 		ok, err = a.deserializeList(listDataSimpleXOR, uint32(listCount), listSize, uint32(fileSize))
 		if !ok {
-			a.file.Close()
 			return false, fmt.Errorf("failed to deserialize list after both decryptions: %w", err)
 		}
 	}
 
+	success = true
 	return true, nil
 }
 

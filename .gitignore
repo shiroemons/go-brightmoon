@@ -1,3 +1,16 @@
 tmp/
 titles_th*.txt
 dist/
+
+# Build outputs
+brightmoon
+titles_th
+
+# Test artifacts
+coverage.out
+*.test
+
+# IDE
+.idea/
+.vscode/
+*.swp

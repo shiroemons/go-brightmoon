@@ -1,3 +1,11 @@
+// Package crypto は東方Projectのアーカイブファイルで使用される暗号化・圧縮アルゴリズムを提供します。
+//
+// 主な機能:
+//   - THCrypter: 東方Project特有のXORベース暗号化の解除
+//   - UNLZSS: LZSS圧縮データの解凍
+//   - UNERLE: RLE圧縮データの解凍
+//   - XOR: 単純なXOR暗号化
+//   - RNGMT: メルセンヌ・ツイスタ疑似乱数生成器
 package crypto
 
 import (

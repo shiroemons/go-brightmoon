@@ -11,6 +11,29 @@ import (
 	"github.com/shiroemons/go-brightmoon/pkg/crypto"
 )
 
+// Kaguya アーカイブ形式のマジックナンバーと定数
+const (
+	// KaguyaMagic は Kaguya アーカイブの識別子 'ZGBP' (リトルエンディアン)
+	KaguyaMagic = 0x5a474250
+
+	// ヘッダ値のオフセット補正定数（C++版互換）
+	kaguyaFileCountOffset  = 123456
+	kaguyaListOffsetOffset = 345678
+	kaguyaListSizeOffset   = 567891
+
+	// ヘッダサイズと暗号化パラメータ
+	kaguyaHeaderSize     = 12
+	kaguyaHeaderKey      = 0x1b
+	kaguyaHeaderStep     = 0x37
+	kaguyaHeaderBlock    = 0x0c
+	kaguyaHeaderLimit    = 0x400
+	kaguyaListKey        = 62  // 0x3e
+	kaguyaListStep       = 155 // 0x9b
+	kaguyaListBlock      = 0x80
+	kaguyaListLimit      = 0x400
+	kaguyaOrigSizeAdjust = 4
+)
+
 // CryptParam は暗号化パラメータを表します
 type CryptParam struct {
 	Type  byte
@@ -97,6 +120,16 @@ func NewKaguyaArchive() *KaguyaArchive {
 	}
 }
 
+// Close はアーカイブファイルを閉じます
+func (a *KaguyaArchive) Close() error {
+	if a.file != nil {
+		err := a.file.Close()
+		a.file = nil
+		return err
+	}
+	return nil
+}
+
 // SetArchiveType はアーカイブタイプを設定します
 // type=0: 永夜抄用
 // type=1: StB用 (弾幕アマノジャク)
@@ -117,29 +150,33 @@ func (a *KaguyaArchive) Open(filename string) (bool, error) {
 	}
 	a.file = file
 
+	// エラー時にクリーンアップするためのフラグ
+	success := false
+	defer func() {
+		if !success {
+			a.file.Close()
+		}
+	}()
+
 	// ファイルサイズを取得
 	fileInfo, err := file.Stat()
 	if err != nil {
-		a.file.Close() // エラー時はファイルを閉じる
 		return false, err
 	}
 	fileSize := fileInfo.Size()
 
-	// マジックナンバー 'ZGBP' (0x5a474250) をチェック
+	// マジックナンバー 'ZGBP' をチェック
 	var magic uint32
 	if err := binary.Read(a.file, binary.LittleEndian, &magic); err != nil {
-		a.file.Close()
 		return false, fmt.Errorf("failed to read magic number: %w", err)
 	}
-	if magic != 0x5a474250 {
-		a.file.Close()
+	if magic != KaguyaMagic {
 		return false, errors.New("invalid magic number")
 	}
 
-	// ヘッダ (12バイト) を復号
+	// ヘッダを復号
 	headBuf := new(bytes.Buffer)
-	if !crypto.THCrypter(a.file, headBuf, 12, 0x1b, 0x37, 0x0c, 0x400) {
-		a.file.Close()
+	if !crypto.THCrypter(a.file, headBuf, kaguyaHeaderSize, kaguyaHeaderKey, kaguyaHeaderStep, kaguyaHeaderBlock, kaguyaHeaderLimit) {
 		return false, errors.New("failed to decrypt header")
 	}
 
@@ -154,24 +191,21 @@ func (a *KaguyaArchive) Open(filename string) (bool, error) {
 		errRead = binary.Read(headBuf, binary.LittleEndian, &listSize)
 	}
 	if errRead != nil {
-		a.file.Close()
 		return false, fmt.Errorf("failed to read header info: %w", errRead)
 	}
 
 	// 値を調整 (C++版の定数引き算)
-	fileCount -= 123456
-	listOffset -= 345678
-	listSize -= 567891 // listSize は使われていないが、C++版に合わせて調整
+	fileCount -= kaguyaFileCountOffset
+	listOffset -= kaguyaListOffsetOffset
+	listSize -= kaguyaListSizeOffset // listSize は使われていないが、C++版に合わせて調整
 
 	// listOffset の検証
 	if int64(listOffset) >= fileSize {
-		a.file.Close()
 		return false, fmt.Errorf("invalid list offset %d (filesize %d)", listOffset, fileSize)
 	}
 
 	// リストを読み込み (復号 -> 解凍)
 	if _, err := a.file.Seek(int64(listOffset), io.SeekStart); err != nil {
-		a.file.Close()
 		return false, fmt.Errorf("failed to seek to list offset: %w", err)
 	}
 
@@ -179,15 +213,13 @@ func (a *KaguyaArchive) Open(filename string) (bool, error) {
 	compListSize := int(fileSize - int64(listOffset))
 	cryptedListReader := io.LimitReader(a.file, int64(compListSize))
 	compBuf := new(bytes.Buffer)
-	if !crypto.THCrypter(cryptedListReader, compBuf, compListSize, 62, 155, 0x80, 0x400) {
-		a.file.Close()
+	if !crypto.THCrypter(cryptedListReader, compBuf, compListSize, kaguyaListKey, kaguyaListStep, kaguyaListBlock, kaguyaListLimit) {
 		return false, errors.New("failed to decrypt list data")
 	}
 
 	// 2. 復号したリストデータを解凍
 	listBuf := new(bytes.Buffer)
 	if err := crypto.UNLZSS(compBuf, listBuf); err != nil {
-		a.file.Close()
 		return false, fmt.Errorf("failed to decompress list data: %w", err)
 	}
 
@@ -202,7 +234,6 @@ func (a *KaguyaArchive) Open(filename string) (bool, error) {
 		for {
 			b, err := listBuf.ReadByte()
 			if err != nil {
-				a.file.Close()
 				return false, fmt.Errorf("failed to read entry name byte: %w", err)
 			}
 			if b == 0 {
@@ -222,15 +253,13 @@ func (a *KaguyaArchive) Open(filename string) (bool, error) {
 			errRead = binary.Read(listBuf, binary.LittleEndian, &dummy)
 		}
 		if errRead != nil {
-			a.file.Close()
 			return false, fmt.Errorf("failed to read entry metadata for %s: %w", entry.Name, errRead)
 		}
 
-		entry.OrigSize -= 4 // C++版の調整
+		entry.OrigSize -= kaguyaOrigSizeAdjust // C++版の調整
 
 		// オフセット検証
 		if int64(entry.Offset) >= fileSize {
-			a.file.Close()
 			return false, fmt.Errorf("invalid entry offset %d for '%s' (filesize %d)", entry.Offset, entry.Name, fileSize)
 		}
 
@@ -245,6 +274,7 @@ func (a *KaguyaArchive) Open(filename string) (bool, error) {
 		a.entries[len(a.entries)-1].CompSize = listOffset - a.entries[len(a.entries)-1].Offset
 	}
 
+	success = true
 	return true, nil
 }
 
