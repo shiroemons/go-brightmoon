@@ -115,10 +115,17 @@ func (a *YumemiArchive) Open(filename string) (bool, error) {
 	}
 	a.file = file
 
+	// エラー時にクリーンアップするためのフラグ
+	success := false
+	defer func() {
+		if !success {
+			a.file.Close()
+		}
+	}()
+
 	// ファイルサイズを取得
 	fileInfo, err := file.Stat()
 	if err != nil {
-		a.file.Close()
 		return false, err
 	}
 	fileSize := fileInfo.Size()
@@ -126,7 +133,6 @@ func (a *YumemiArchive) Open(filename string) (bool, error) {
 	// ヘッダを読み込み (C++版に合わせる)
 	header := make([]byte, 16)
 	if _, err := io.ReadFull(a.file, header); err != nil {
-		a.file.Close()
 		return false, fmt.Errorf("failed to read header: %w", err)
 	}
 
@@ -135,30 +141,24 @@ func (a *YumemiArchive) Open(filename string) (bool, error) {
 	var entryKey byte    // リスト復号キー
 	buf := bytes.NewReader(header)
 	if err := binary.Read(buf, binary.LittleEndian, &entrySize); err != nil { // 2 bytes
-		a.file.Close()
 		return false, err
 	}
 	if _, err := buf.Seek(2, io.SeekCurrent); err != nil { // skip 2 bytes padding
-		a.file.Close()
 		return false, err
 	}
 	if err := binary.Read(buf, binary.LittleEndian, &entryNum); err != nil { // 2 bytes
-		a.file.Close()
 		return false, err
 	}
 	if err := binary.Read(buf, binary.LittleEndian, &entryKey); err != nil { // 1 byte
-		a.file.Close()
 		return false, err
 	}
 	// 残り9バイトのパディングは無視
 
 	// ヘッダ情報の検証 (C++版に合わせる)
 	if int64(entrySize) > fileSize {
-		a.file.Close()
 		return false, fmt.Errorf("invalid entry list size %d > filesize %d", entrySize, fileSize)
 	}
 	if (entrySize&0x1F) != 0 || int(entrySize)/32 < int(entryNum) {
-		a.file.Close()
 		return false, fmt.Errorf("invalid entry size/num relation: size=%d, num=%d", entrySize, entryNum)
 	}
 
@@ -168,12 +168,10 @@ func (a *YumemiArchive) Open(filename string) (bool, error) {
 	// ただしファイルポインタはヘッダの次にあるので、読み込むサイズは entrySize - 16
 	listDataSize := int(entrySize) - 16
 	if listDataSize < 0 {
-		a.file.Close()
 		return false, fmt.Errorf("invalid list data size: %d", listDataSize)
 	}
 	listData := make([]byte, listDataSize)
 	if _, err := io.ReadFull(a.file, listData); err != nil {
-		a.file.Close()
 		return false, fmt.Errorf("failed to read list data: %w", err)
 	}
 
@@ -193,11 +191,9 @@ func (a *YumemiArchive) Open(filename string) (bool, error) {
 				// C++版は magic == 0 でループを抜ける。GoではEOFを正常終了とみなす。
 				break
 			}
-			a.file.Close()
 			return false, fmt.Errorf("failed to read entry %d: %w", i, err)
 		}
 		if n != 32 {
-			a.file.Close()
 			return false, fmt.Errorf("short read for entry %d, expected 32, got %d", i, n)
 		}
 
@@ -234,14 +230,12 @@ func (a *YumemiArchive) Open(filename string) (bool, error) {
 
 		// マジックナンバー検証
 		if magic != 0x9595 && magic != 0xF388 {
-			a.file.Close()
 			return false, fmt.Errorf("invalid magic 0x%x for entry %d", magic, i)
 		}
 
 		// 名前検証 (C++版ロジック)
 		validName, ok := validateName(nameBytes[:])
 		if !ok {
-			a.file.Close()
 			// C++版は false を返すだけだが、デバッグのためファイル名も出す
 			rawName := strings.TrimRight(string(nameBytes[:]), "\x00")
 			return false, fmt.Errorf("invalid name for entry %d: raw='%s'", i, rawName)
@@ -250,11 +244,9 @@ func (a *YumemiArchive) Open(filename string) (bool, error) {
 
 		// オフセットとサイズの検証 (C++版に合わせる)
 		if int64(entry.Offset) >= fileSize {
-			a.file.Close()
 			return false, fmt.Errorf("invalid offset %d >= filesize %d for entry %d", entry.Offset, fileSize, i)
 		}
 		if int64(fileSize)-int64(entry.Offset) < int64(entry.CompSize) {
-			a.file.Close()
 			return false, fmt.Errorf("invalid size: offset %d + compsize %d > filesize %d for entry %d", entry.Offset, entry.CompSize, fileSize, i)
 		}
 
@@ -265,10 +257,10 @@ func (a *YumemiArchive) Open(filename string) (bool, error) {
 	// 実際に読み込めたエントリ数が entryNum より少ない場合がある (magic==0 で抜けた場合)
 	if len(a.entries) == 0 && entryNum > 0 {
 		// 有効なエントリが一つもなかった場合
-		a.file.Close()
 		return false, errors.New("no valid entries found")
 	}
 
+	success = true
 	return true, nil
 }
 

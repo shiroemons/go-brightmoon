@@ -60,8 +60,15 @@ func (a *SuicaArchive) Open(filename string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
 	a.file = file
+
+	// エラー時にクリーンアップするためのフラグ
+	success := false
+	defer func() {
+		if !success {
+			a.file.Close()
+		}
+	}()
 
 	// ファイルサイズを取得
 	fileInfo, err := file.Stat()
@@ -77,7 +84,13 @@ func (a *SuicaArchive) Open(filename string) (bool, error) {
 	}
 
 	// エントリリストを読み込み
-	return a.open(file, uint32(entryCount), uint32(fileSize))
+	ok, err := a.open(file, uint32(entryCount), uint32(fileSize))
+	if !ok {
+		return false, err
+	}
+
+	success = true
+	return true, nil
 }
 
 // エントリリストを読み込みます

@@ -11,6 +11,27 @@ import (
 	"github.com/shiroemons/go-brightmoon/pkg/crypto"
 )
 
+// Kanako アーカイブ形式のマジックナンバーと定数
+const (
+	// KanakoMagic は Kanako アーカイブの識別子 'THA1' (リトルエンディアン)
+	KanakoMagic = 0x31414854
+
+	// ヘッダ値のオフセット補正定数（C++版互換）
+	kanakoListSizeOffset     = 123456789
+	kanakoListCompSizeOffset = 987654321
+	kanakoFileCountOffset    = 135792468
+
+	// ヘッダサイズと暗号化パラメータ
+	kanakoHeaderSize  = 0x10
+	kanakoHeaderKey   = 0x1B
+	kanakoHeaderStep  = 0x37
+	kanakoHeaderBlock = 0x10
+	kanakoHeaderLimit = 0x10
+	kanakoListKey     = 0x3e
+	kanakoListStep    = 0x9b
+	kanakoListBlock   = 0x80
+)
+
 // KanakoEntry はKanakoアーカイブ内のエントリを表します
 type KanakoEntry struct {
 	Offset   uint32
@@ -149,8 +170,15 @@ func (a *KanakoArchive) Open(filename string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
 	a.file = file
+
+	// エラー時にクリーンアップするためのフラグ
+	success := false
+	defer func() {
+		if !success {
+			a.file.Close()
+		}
+	}()
 
 	// ファイルサイズを取得
 	fileInfo, err := file.Stat()
@@ -159,25 +187,25 @@ func (a *KanakoArchive) Open(filename string) (bool, error) {
 	}
 	fileSize := fileInfo.Size()
 
-	// ヘッダーを読み込み (16バイト)
+	// ヘッダーを読み込み
 	headerBuf := &bytes.Buffer{}
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
 		return false, err
 	}
 
 	// ヘッダー暗号化解除（固定キー）
-	headerReader := io.LimitReader(file, 16)
-	if !crypto.THCrypter(headerReader, headerBuf, 0x10, 0x1B, 0x37, 0x10, 0x10) {
+	headerReader := io.LimitReader(file, kanakoHeaderSize)
+	if !crypto.THCrypter(headerReader, headerBuf, kanakoHeaderSize, kanakoHeaderKey, kanakoHeaderStep, kanakoHeaderBlock, kanakoHeaderLimit) {
 		return false, errors.New("header decryption failed")
 	}
 
-	// マジックナンバーを確認
+	// マジックナンバー 'THA1' を確認
 	var magic uint32
 	if err := binary.Read(headerBuf, binary.LittleEndian, &magic); err != nil {
 		return false, err
 	}
 
-	if magic != 0x31414854 { // "THA1"
+	if magic != KanakoMagic {
 		return false, errors.New("invalid magic number")
 	}
 
@@ -194,9 +222,9 @@ func (a *KanakoArchive) Open(filename string) (bool, error) {
 	}
 
 	// 暗号化された値を復元
-	listSize -= 123456789
-	listCompSize -= 987654321
-	fileCount -= 135792468
+	listSize -= kanakoListSizeOffset
+	listCompSize -= kanakoListCompSizeOffset
+	fileCount -= kanakoFileCountOffset
 
 	// リストのサイズチェック
 	if listCompSize > uint32(fileSize) {
@@ -213,7 +241,7 @@ func (a *KanakoArchive) Open(filename string) (bool, error) {
 
 	compBuf := &bytes.Buffer{}
 	listReader := io.LimitReader(file, int64(listCompSize))
-	if !crypto.THCrypter(listReader, compBuf, int(listCompSize), 0x3e, 0x9b, 0x80, int(listCompSize)) {
+	if !crypto.THCrypter(listReader, compBuf, int(listCompSize), kanakoListKey, kanakoListStep, kanakoListBlock, int(listCompSize)) {
 		return false, errors.New("list decryption failed")
 	}
 
@@ -271,6 +299,7 @@ func (a *KanakoArchive) Open(filename string) (bool, error) {
 		a.entries[len(a.entries)-1].CompSize = listOffset - a.entries[len(a.entries)-1].Offset
 	}
 
+	success = true
 	return true, nil
 }
 
