@@ -54,7 +54,7 @@ changelog:
       - '^style:'
       - '^chore\(deps\):'
       - '^fix\(deps\):'
-      - '^feat\(titles_th\):'
+      - 'titles_th'
       - '^Merge pull request'
       - '^Merge branch'
       - '^Update ' 
