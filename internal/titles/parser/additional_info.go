@@ -58,14 +58,19 @@ func (p *AdditionalInfoParser) CheckAdditionalInfo(archivePath string) models.Ad
 		return models.AdditionalInfo{HasAdditionalInfo: false}
 	}
 
-	// 2行目の最初の文字が○かチェック
+	// 2行目からタイトルを抽出
 	secondLine := strings.TrimSpace(lines[1])
-	if !strings.HasPrefix(secondLine, "○") {
+
+	var title string
+	if strings.HasPrefix(secondLine, "○") {
+		// TH10以降の形式: ○東方風神録　～ Mountain of Faith.
+		title = strings.TrimPrefix(secondLine, "○")
+	} else if strings.HasPrefix(secondLine, "東方") {
+		// TH07形式: 　東方妖々夢　〜 Perfect Cherry Blossom.
+		title = secondLine
+	} else {
 		return models.AdditionalInfo{HasAdditionalInfo: false}
 	}
-
-	// ○以降の文字列を取得
-	title := strings.TrimPrefix(secondLine, "○")
 
 	// 使用するthbgm.datのパスを決定
 	var thbgmFilePath string

@@ -19,6 +19,7 @@ type ArchiveTypeMapping struct {
 // GetArchiveTypeMappings はアーカイブタイプのマッピングを返します
 func GetArchiveTypeMappings() []ArchiveTypeMapping {
 	return []ArchiveTypeMapping{
+		{"Yukari", pbgarc.NewYukariArchive, false, 0}, // TH07 (PBG4形式)
 		{"Yumemi", pbgarc.NewYumemiArchive, false, 0},
 		{"Kaguya", pbgarc.NewKaguyaArchive, true, 1},
 		{"Suica", pbgarc.NewSuicaArchive, false, 0},
@@ -108,6 +109,8 @@ func (e *Extractor) openArchiveAuto(filename string) (pbgarc.PBGArchive, error) 
 
 		// newFuncの型に応じてインスタンス化
 		switch fn := mapping.NewFunc.(type) {
+		case func() *pbgarc.YukariArchive:
+			archive = fn()
 		case func() *pbgarc.YumemiArchive:
 			archive = fn()
 		case func() *pbgarc.SuicaArchive:
@@ -211,7 +214,7 @@ func (e *Extractor) chooseFromCandidates(candidates []archiveCandidate, gameNum 
 func (e *Extractor) chooseOldFormat(candidates []archiveCandidate, gameNum int) (pbgarc.PBGArchive, string) {
 	for _, c := range candidates {
 		if (gameNum == 6 && c.name == "Hinanawi") ||
-			(gameNum == 7 && c.name == "Yumemi") {
+			(gameNum == 7 && c.name == "Yukari") {
 			return c.archive, c.name
 		}
 	}
