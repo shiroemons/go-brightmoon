@@ -64,9 +64,22 @@ func (p *THBGMParser) ParseMusicCmt(data string) ([]*models.Track, error) {
 	var tracks []*models.Track
 	var fileName string
 	var title string
+	var hasNoteSymbol bool // ♪行が見つかったかどうか
 
+	// 1回目のスキャン: ♪形式の行が存在するか確認
 	buf := bytes.NewBufferString(text)
 	scanner := bufio.NewScanner(buf)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "♪") {
+			hasNoteSymbol = true
+			break
+		}
+	}
+
+	// 2回目のスキャン: トラック情報を解析
+	buf = bytes.NewBufferString(text)
+	scanner = bufio.NewScanner(buf)
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "@bgm/") {
@@ -86,8 +99,8 @@ func (p *THBGMParser) ParseMusicCmt(data string) ([]*models.Track, error) {
 			}
 			tracks = append(tracks, track)
 		}
-		// th09対応: "No.X  曲名" 形式
-		if strings.HasPrefix(line, "No.") && fileName != "" {
+		// th09対応: "No.X  曲名" 形式（♪形式が存在しない場合のみ使用）
+		if !hasNoteSymbol && strings.HasPrefix(line, "No.") && fileName != "" {
 			// "No.1  曲名" から曲名を抽出（"No.X"の後の空白を除去）
 			parts := strings.SplitN(line, " ", 2)
 			if len(parts) >= 2 {
