@@ -179,11 +179,11 @@ func TestExtractor_openByGameNumber(t *testing.T) {
 func TestGetArchiveTypeMappings(t *testing.T) {
 	mappings := GetArchiveTypeMappings()
 
-	if len(mappings) != 6 {
-		t.Errorf("Expected 6 archive type mappings, got %d", len(mappings))
+	if len(mappings) != 7 {
+		t.Errorf("Expected 7 archive type mappings, got %d", len(mappings))
 	}
 
-	expectedNames := []string{"Yumemi", "Kaguya", "Suica", "Hinanawi", "Marisa", "Kanako"}
+	expectedNames := []string{"Yukari", "Yumemi", "Kaguya", "Suica", "Hinanawi", "Marisa", "Kanako"}
 	for _, expected := range expectedNames {
 		found := false
 		for _, mapping := range mappings {

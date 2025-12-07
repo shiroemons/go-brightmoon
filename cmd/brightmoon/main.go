@@ -270,8 +270,8 @@ func guessArchiveInfoFromName(filename string) (expectedFormatName string, expec
 		// 特殊なケース (Suicaなど)
 		if strings.Contains(baseName, "th06") { // Hinanawi (th06)
 			expectedFormatName = "Hinanawi"
-		} else if strings.Contains(baseName, "th07") { // Yumemi (th07)
-			expectedFormatName = "Yumemi"
+		} else if strings.Contains(baseName, "th07") { // Yukari (th07)
+			expectedFormatName = "Yukari"
 		} else if strings.Contains(baseName, "th095") { // Marisa (th095)
 			expectedFormatName = "Marisa"
 		} else {
@@ -287,7 +287,7 @@ func guessArchiveInfoFromName(filename string) (expectedFormatName string, expec
 	case "th06":
 		expectedFormatName = "Hinanawi"
 	case "th07":
-		expectedFormatName = "Yumemi"
+		expectedFormatName = "Yukari"
 	case "th08":
 		expectedFormatName = "Kaguya"
 		expectedSubType = 0 // Imperishable Night
@@ -345,6 +345,7 @@ func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
 		needsType bool
 		baseType  int
 	}{
+		{"Yukari", pbgarc.NewYukariArchive, false, 0}, // TH07 (PBG4形式)
 		{"Yumemi", pbgarc.NewYumemiArchive, false, 0},
 		{"Suica", pbgarc.NewSuicaArchive, false, 0},
 		{"Hinanawi", pbgarc.NewHinanawiArchive, false, 0},
@@ -373,6 +374,8 @@ func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
 
 		// newFunc の型に応じてインスタンス化
 		switch fn := mapping.newFunc.(type) {
+		case func() *pbgarc.YukariArchive:
+			archive = fn()
 		case func() *pbgarc.YumemiArchive:
 			archive = fn()
 		case func() *pbgarc.SuicaArchive:

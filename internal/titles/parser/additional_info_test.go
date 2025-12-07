@@ -89,10 +89,28 @@ func TestAdditionalInfoParser_CheckAdditionalInfo(t *testing.T) {
 			wantHasInfo: false,
 		},
 		{
-			name: "2行目が○で始まらない",
+			name: "TH07形式（○なし、東方で始まる）",
 			setupFiles: func(dir string) error {
-				// readme.txt作成（○なし）
-				readmeContent, err := toShiftJIS("タイトル\n東方紅魔郷\n")
+				// readme.txt作成（TH07形式: ○なし、全角スペース+東方で始まる）
+				// 注意: 波ダッシュ「〜」はShift-JISで使用不可なので「～」(U+FF5E)を使用
+				readmeContent, err := toShiftJIS("-------------------------------------------------------------\n　東方妖々夢　～ Perfect Cherry Blossom.\n")
+				if err != nil {
+					return err
+				}
+				if err := os.WriteFile(filepath.Join(dir, "readme.txt"), readmeContent, 0644); err != nil {
+					return err
+				}
+				// thbgm.dat作成
+				return os.WriteFile(filepath.Join(dir, "thbgm.dat"), []byte("dummy"), 0644)
+			},
+			wantHasInfo:      true,
+			wantTrialVersion: false,
+		},
+		{
+			name: "2行目が○でも東方でも始まらない",
+			setupFiles: func(dir string) error {
+				// readme.txt作成（認識できない形式）
+				readmeContent, err := toShiftJIS("タイトル\n紅魔郷\n")
 				if err != nil {
 					return err
 				}

@@ -30,13 +30,13 @@ func TestChooseOldFormat(t *testing.T) {
 			wantName: "Hinanawi",
 		},
 		{
-			name: "th07でYumemi選択",
+			name: "th07でYukari選択",
 			candidates: []archiveCandidate{
 				{name: "Hinanawi", archive: &pbgarc.HinanawiArchive{}},
-				{name: "Yumemi", archive: &pbgarc.YumemiArchive{}},
+				{name: "Yukari", archive: &pbgarc.YukariArchive{}},
 			},
 			gameNum:  7,
-			wantName: "Yumemi",
+			wantName: "Yukari",
 		},
 		{
 			name:       "候補なし",
@@ -263,12 +263,12 @@ func TestChooseFromCandidates(t *testing.T) {
 			wantType: -1,
 		},
 		{
-			name: "th07でYumemi選択",
+			name: "th07でYukari選択",
 			candidates: []archiveCandidate{
-				{name: "Yumemi", archive: &pbgarc.YumemiArchive{}},
+				{name: "Yukari", archive: &pbgarc.YukariArchive{}},
 			},
 			gameNum:  7,
-			wantName: "Yumemi",
+			wantName: "Yukari",
 			wantType: -1,
 		},
 		{
@@ -293,10 +293,10 @@ func TestChooseFromCandidates(t *testing.T) {
 			name: "複数候補から正しく選択",
 			candidates: []archiveCandidate{
 				{name: "Hinanawi", archive: &pbgarc.HinanawiArchive{}},
-				{name: "Yumemi", archive: &pbgarc.YumemiArchive{}},
+				{name: "Yukari", archive: &pbgarc.YukariArchive{}},
 			},
 			gameNum:  7,
-			wantName: "Yumemi",
+			wantName: "Yukari",
 			wantType: -1,
 		},
 		{
