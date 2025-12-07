@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-const Version = "0.0.3"
+const Version = "0.0.4"
 
 // Config はアプリケーションの設定を保持します
 type Config struct {
