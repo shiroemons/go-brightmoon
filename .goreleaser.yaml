@@ -49,7 +49,12 @@ changelog:
       - '^docs:'
       - '^test:'
       - '^ci:'
-      - '^chore:' 
+      - '^chore:'
+      - '^refactor:'
+      - '^style:'
+      - '^Merge pull request'
+      - '^Merge branch'
+      - '^Update ' 
 
 release:
   name_template: "v{{.Major}}.{{.Minor}}.{{.Patch}}-brightmoon" 
