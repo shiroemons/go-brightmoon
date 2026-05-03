@@ -29,7 +29,7 @@ var (
 )
 
 // コールバック関数
-func callback(msg string, user interface{}) bool {
+func callback(msg string, user any) bool {
 	fmt.Print(msg)
 	return true
 }
@@ -73,7 +73,7 @@ func main() {
 				n, err := file.Read(header)
 				if err == nil && n > 0 {
 					fmt.Printf("ファイルヘッダ (hex): ")
-					for i := 0; i < n; i++ {
+					for i := range n {
 						fmt.Printf("%02x ", header[i])
 					}
 					fmt.Println()
@@ -177,7 +177,7 @@ func openSpecificArchive(filename string, archiveType int) (pbgarc.PBGArchive, e
 	// アーカイブタイプと生成関数のマッピング (具体的な型を返すように変更)
 	typeMapping := []struct {
 		name      string
-		newFunc   interface{} // 型を interface{} にして後でアサーション
+		newFunc   any // 型を interface{} にして後でアサーション
 		needsType bool
 		baseType  int
 	}{
@@ -309,16 +309,16 @@ func guessArchiveInfoFromName(filename string) (expectedFormatName string, expec
 	default:
 		// th13 以降をKanako Type 2と仮定
 		if strings.HasPrefix(gameStr, "th") {
-			numStr := ""
+			var numStr strings.Builder
 			for i := 2; i < len(gameStr); i++ {
 				if gameStr[i] >= '0' && gameStr[i] <= '9' {
-					numStr += string(gameStr[i])
+					numStr.WriteString(string(gameStr[i]))
 				} else {
 					break // Stop at the first non-digit character
 				}
 			}
-			if len(numStr) > 0 {
-				num, atoiErr := strconv.Atoi(numStr)
+			if len(numStr.String()) > 0 {
+				num, atoiErr := strconv.Atoi(numStr.String())
 				if atoiErr == nil && num >= 13 {
 					expectedFormatName = "Kanako"
 					expectedSubType = 2 // TD and later
@@ -344,7 +344,7 @@ func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
 	// 各アーカイブタイプを試す
 	archiveMappings := []struct {
 		name      string
-		newFunc   interface{} // 型を interface{} に
+		newFunc   any // 型を interface{} に
 		needsType bool
 		baseType  int
 	}{
@@ -363,7 +363,7 @@ func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
 		archive pbgarc.PBGArchive // インターフェース型で保持
 		mapping *struct {         // mapping情報も保持
 			name      string
-			newFunc   interface{}
+			newFunc   any
 			needsType bool
 			baseType  int
 		}
@@ -416,7 +416,7 @@ func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
 				archive pbgarc.PBGArchive
 				mapping *struct {
 					name      string
-					newFunc   interface{}
+					newFunc   any
 					needsType bool
 					baseType  int
 				}
@@ -449,7 +449,7 @@ func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
 	var chosenArchive pbgarc.PBGArchive
 	var chosenMapping *struct {
 		name      string
-		newFunc   interface{}
+		newFunc   any
 		needsType bool
 		baseType  int
 	}

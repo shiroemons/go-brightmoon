@@ -9,14 +9,14 @@ func TestDefaultArchiveFactory(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		newFunc func() interface{}
+		newFunc func() any
 	}{
-		{"NewYumemiArchive", func() interface{} { return factory.NewYumemiArchive() }},
-		{"NewKaguyaArchive", func() interface{} { return factory.NewKaguyaArchive() }},
-		{"NewSuicaArchive", func() interface{} { return factory.NewSuicaArchive() }},
-		{"NewHinanawiArchive", func() interface{} { return factory.NewHinanawiArchive() }},
-		{"NewMarisaArchive", func() interface{} { return factory.NewMarisaArchive() }},
-		{"NewKanakoArchive", func() interface{} { return factory.NewKanakoArchive() }},
+		{"NewYumemiArchive", func() any { return factory.NewYumemiArchive() }},
+		{"NewKaguyaArchive", func() any { return factory.NewKaguyaArchive() }},
+		{"NewSuicaArchive", func() any { return factory.NewSuicaArchive() }},
+		{"NewHinanawiArchive", func() any { return factory.NewHinanawiArchive() }},
+		{"NewMarisaArchive", func() any { return factory.NewMarisaArchive() }},
+		{"NewKanakoArchive", func() any { return factory.NewKanakoArchive() }},
 	}
 
 	for _, tt := range tests {

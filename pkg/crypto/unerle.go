@@ -53,7 +53,7 @@ func UneRLE(in io.Reader, out io.Writer) error {
 					return err
 				}
 				count := int(br[0])
-				for i := 0; i < count; i++ {
+				for range count {
 					if _, err := out.Write([]byte{prev}); err != nil {
 						return err
 					}

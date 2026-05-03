@@ -114,7 +114,7 @@ func (m *MockPBGArchive) GetEntry() pbgarc.PBGArchiveEntry {
 }
 
 // Extract はモック実装
-func (m *MockPBGArchive) Extract(w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (m *MockPBGArchive) Extract(w io.Writer, callback func(string, any) bool, user any) bool {
 	if m.ExtractError != nil {
 		return false
 	}
@@ -135,7 +135,7 @@ func (m *MockPBGArchive) Extract(w io.Writer, callback func(string, interface{})
 }
 
 // ExtractAll はモック実装
-func (m *MockPBGArchive) ExtractAll(callback func(string, interface{}) bool, user interface{}) bool {
+func (m *MockPBGArchive) ExtractAll(callback func(string, any) bool, user any) bool {
 	for name, data := range m.Files {
 		if callback != nil {
 			if !callback(name, user) {
@@ -169,7 +169,7 @@ func (e *MockPBGArchiveEntry) GetCompressedSize() uint32 {
 }
 
 // Extract はモック実装
-func (e *MockPBGArchiveEntry) Extract(w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (e *MockPBGArchiveEntry) Extract(w io.Writer, callback func(string, any) bool, user any) bool {
 	if callback != nil {
 		return callback(e.Name, user)
 	}

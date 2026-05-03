@@ -32,7 +32,7 @@ func (e *SuicaEntry) GetCompressedSize() uint32 {
 }
 
 // Extract はエントリを抽出します
-func (e *SuicaEntry) Extract(w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (e *SuicaEntry) Extract(w io.Writer, callback func(string, any) bool, user any) bool {
 	if e.parent == nil {
 		return false
 	}
@@ -123,7 +123,7 @@ func (a *SuicaArchive) open(file *os.File, listCount, fileSize uint32) (bool, er
 
 	// 暗号化解除
 	k, t := byte(0x64), byte(0x64)
-	for i := uint32(0); i < listSize; i++ {
+	for i := range listSize {
 		listBuf[i] ^= k
 		k += t
 		t += 0x4D
@@ -131,12 +131,12 @@ func (a *SuicaArchive) open(file *os.File, listCount, fileSize uint32) (bool, er
 
 	// エントリリストを解析
 	a.entries = make([]SuicaEntry, 0, listCount)
-	for i := uint32(0); i < listCount; i++ {
+	for i := range listCount {
 		p := i * 0x6C
 
 		// 名前を取得
 		nameLen := 0
-		for j := uint32(0); j < 0x64; j++ {
+		for j := range uint32(0x64) {
 			if listBuf[p+j] == 0 {
 				break
 			}
@@ -221,7 +221,7 @@ func (a *SuicaArchive) GetEntry() PBGArchiveEntry {
 }
 
 // Extract は現在のエントリを抽出します
-func (a *SuicaArchive) Extract(w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (a *SuicaArchive) Extract(w io.Writer, callback func(string, any) bool, user any) bool {
 	if a.curIndex < 0 || a.curIndex >= len(a.entries) {
 		return false
 	}
@@ -229,7 +229,7 @@ func (a *SuicaArchive) Extract(w io.Writer, callback func(string, interface{}) b
 }
 
 // ExtractEntry は指定されたエントリを抽出します
-func (a *SuicaArchive) ExtractEntry(entry *SuicaEntry, w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (a *SuicaArchive) ExtractEntry(entry *SuicaEntry, w io.Writer, callback func(string, any) bool, user any) bool {
 	if w == nil {
 		return false
 	}
@@ -251,20 +251,14 @@ func (a *SuicaArchive) ExtractEntry(entry *SuicaEntry, w io.Writer, callback fun
 	}
 
 	// バッファサイズ
-	bufSize := uint32(1024)
-	if bufSize > entry.Size {
-		bufSize = entry.Size
-	}
+	bufSize := min(uint32(1024), entry.Size)
 
 	// データを読み込み
 	buffer := make([]byte, bufSize)
 	remaining := entry.Size
 
 	for remaining > 0 {
-		readSize := bufSize
-		if readSize > remaining {
-			readSize = remaining
-		}
+		readSize := min(bufSize, remaining)
 
 		if _, err := io.ReadFull(a.file, buffer[:readSize]); err != nil {
 			return false
@@ -287,7 +281,7 @@ func (a *SuicaArchive) ExtractEntry(entry *SuicaEntry, w io.Writer, callback fun
 }
 
 // ExtractAll は全てのエントリを抽出します
-func (a *SuicaArchive) ExtractAll(callback func(string, interface{}) bool, user interface{}) bool {
+func (a *SuicaArchive) ExtractAll(callback func(string, any) bool, user any) bool {
 	if !a.EnumFirst() {
 		return true
 	}

@@ -58,7 +58,7 @@ func (e *KanakoEntry) GetCompressedSize() uint32 {
 }
 
 // Extract はエントリを抽出します
-func (e *KanakoEntry) Extract(w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (e *KanakoEntry) Extract(w io.Writer, callback func(string, any) bool, user any) bool {
 	if e.parent == nil {
 		return false
 	}
@@ -276,9 +276,9 @@ func (a *KanakoArchive) Open(filename string) (bool, error) {
 				return false, err
 			}
 
-			endIdx := bytes.IndexByte(buff, 0)
-			if endIdx >= 0 {
-				nameParts = append(nameParts, buff[:endIdx]...)
+			before, _, ok := bytes.Cut(buff, []byte{0})
+			if ok {
+				nameParts = append(nameParts, before...)
 				break
 			}
 			nameParts = append(nameParts, buff...)
@@ -375,7 +375,7 @@ func (a *KanakoArchive) GetEntry() PBGArchiveEntry {
 }
 
 // Extract は現在のエントリを抽出します
-func (a *KanakoArchive) Extract(w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (a *KanakoArchive) Extract(w io.Writer, callback func(string, any) bool, user any) bool {
 	if a.curIndex < 0 || a.curIndex >= len(a.entries) {
 		return false
 	}
@@ -383,7 +383,7 @@ func (a *KanakoArchive) Extract(w io.Writer, callback func(string, interface{}) 
 }
 
 // ExtractEntry は指定されたエントリを抽出します
-func (a *KanakoArchive) ExtractEntry(entry *KanakoEntry, w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (a *KanakoArchive) ExtractEntry(entry *KanakoEntry, w io.Writer, callback func(string, any) bool, user any) bool {
 	if w == nil {
 		return false
 	}
@@ -464,7 +464,7 @@ func (a *KanakoArchive) ExtractEntry(entry *KanakoEntry, w io.Writer, callback f
 }
 
 // ExtractAll は全てのエントリを抽出します
-func (a *KanakoArchive) ExtractAll(callback func(string, interface{}) bool, user interface{}) bool {
+func (a *KanakoArchive) ExtractAll(callback func(string, any) bool, user any) bool {
 	success := true
 	for i := range a.entries {
 		if !a.ExtractEntry(&a.entries[i], io.Discard, callback, user) {

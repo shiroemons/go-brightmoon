@@ -88,8 +88,8 @@ func (p *THBGMParser) ParseMusicCmt(data string) ([]*models.Track, error) {
 		if strings.HasPrefix(line, "@bgm/") {
 			fileName = strings.Replace(line, "@bgm/", "", -1)
 			// .mid を .wav に置き換え（th09対応）
-			if strings.HasSuffix(fileName, ".mid") {
-				fileName = strings.TrimSuffix(fileName, ".mid") + ".wav"
+			if before, ok := strings.CutSuffix(fileName, ".mid"); ok {
+				fileName = before + ".wav"
 			} else if !strings.HasSuffix(fileName, ".wav") {
 				fileName = fileName + ".wav"
 			}

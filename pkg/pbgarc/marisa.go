@@ -37,7 +37,7 @@ func (e *MarisaEntry) GetCompressedSize() uint32 {
 }
 
 // Extract はエントリを抽出します
-func (e *MarisaEntry) Extract(w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (e *MarisaEntry) Extract(w io.Writer, callback func(string, any) bool, user any) bool {
 	if e.parent == nil {
 		return false
 	}
@@ -162,7 +162,7 @@ func (a *MarisaArchive) deserializeList(listBuf []byte, listCount, listSize, fil
 	listReader := bytes.NewReader(listBuf)
 	readOffset := uint32(0)
 
-	for i := uint32(0); i < listCount; i++ {
+	for i := range listCount {
 		var entry MarisaEntry
 		var nameLen byte
 
@@ -273,7 +273,7 @@ func (a *MarisaArchive) GetEntry() PBGArchiveEntry {
 }
 
 // Extract は現在のエントリを抽出します
-func (a *MarisaArchive) Extract(w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (a *MarisaArchive) Extract(w io.Writer, callback func(string, any) bool, user any) bool {
 	if a.curIndex < 0 || a.curIndex >= len(a.entries) {
 		return false
 	}
@@ -281,7 +281,7 @@ func (a *MarisaArchive) Extract(w io.Writer, callback func(string, interface{}) 
 }
 
 // ExtractEntry は指定されたエントリを抽出します (C++版のロジックに合わせて修正)
-func (a *MarisaArchive) ExtractEntry(entry *MarisaEntry, w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (a *MarisaArchive) ExtractEntry(entry *MarisaEntry, w io.Writer, callback func(string, any) bool, user any) bool {
 	if w == nil {
 		return false
 	}
@@ -328,7 +328,7 @@ func (a *MarisaArchive) ExtractEntry(entry *MarisaEntry, w io.Writer, callback f
 }
 
 // ExtractAll はすべてのエントリを抽出します
-func (a *MarisaArchive) ExtractAll(callback func(string, interface{}) bool, user interface{}) bool {
+func (a *MarisaArchive) ExtractAll(callback func(string, any) bool, user any) bool {
 	if !a.EnumFirst() {
 		return true // Empty archive is success
 	}

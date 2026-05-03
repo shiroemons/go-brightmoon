@@ -62,9 +62,9 @@ func (p *AdditionalInfoParser) CheckAdditionalInfo(archivePath string) models.Ad
 	secondLine := strings.TrimSpace(lines[1])
 
 	var title string
-	if strings.HasPrefix(secondLine, "○") {
+	if after, ok := strings.CutPrefix(secondLine, "○"); ok {
 		// TH10以降の形式: ○東方風神録　～ Mountain of Faith.
-		title = strings.TrimPrefix(secondLine, "○")
+		title = after
 	} else if strings.HasPrefix(secondLine, "東方") {
 		// TH07形式: 　東方妖々夢　〜 Perfect Cherry Blossom.
 		title = secondLine

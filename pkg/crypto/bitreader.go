@@ -32,7 +32,7 @@ func (br *BitReader) Read(numBits uint) (int, error) {
 	value := 0
 	var finalError error // ループ内で発生した最後のエラー (主にEOF)
 
-	for i := uint(0); i < numBits; i++ {
+	for i := range numBits {
 		if br.count == 0 {
 			buf := make([]byte, 1)
 			n, err := br.reader.Read(buf)

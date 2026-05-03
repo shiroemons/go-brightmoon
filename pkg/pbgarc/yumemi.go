@@ -42,7 +42,7 @@ func (e *YumemiEntry) GetCompressedSize() uint32 {
 }
 
 // Extract はエントリを抽出します
-func (e *YumemiEntry) Extract(w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (e *YumemiEntry) Extract(w io.Writer, callback func(string, any) bool, user any) bool {
 	if e.parent == nil {
 		return false
 	}
@@ -327,7 +327,7 @@ func (a *YumemiArchive) GetEntry() PBGArchiveEntry {
 }
 
 // Extract は現在のエントリを抽出します
-func (a *YumemiArchive) Extract(w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (a *YumemiArchive) Extract(w io.Writer, callback func(string, any) bool, user any) bool {
 	if a.curIndex < 0 || a.curIndex >= len(a.entries) {
 		return false
 	}
@@ -335,7 +335,7 @@ func (a *YumemiArchive) Extract(w io.Writer, callback func(string, interface{}) 
 }
 
 // ExtractEntry は指定されたエントリを抽出します
-func (a *YumemiArchive) ExtractEntry(entry *YumemiEntry, w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (a *YumemiArchive) ExtractEntry(entry *YumemiEntry, w io.Writer, callback func(string, any) bool, user any) bool {
 	if w == nil {
 		return false
 	}
@@ -380,7 +380,7 @@ func (a *YumemiArchive) ExtractEntry(entry *YumemiEntry, w io.Writer, callback f
 }
 
 // ExtractAll は全てのエントリを抽出します
-func (a *YumemiArchive) ExtractAll(callback func(string, interface{}) bool, user interface{}) bool {
+func (a *YumemiArchive) ExtractAll(callback func(string, any) bool, user any) bool {
 	if !a.EnumFirst() {
 		return true
 	}

@@ -2,6 +2,7 @@ package archive
 
 import (
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/shiroemons/go-brightmoon/internal/titles/config"
@@ -92,16 +93,13 @@ func TestExtractor_ExtractFiles(t *testing.T) {
 				do := true
 				for do {
 					entryName := archive.GetEntryName()
-					for _, target := range tt.targetFiles {
-						if entryName == target {
-							data, err := extractor.extractToMemory(archive)
-							if err != nil && !tt.wantError {
-								t.Fatalf("extractToMemory failed: %v", err)
-							}
-							if err == nil {
-								results[entryName] = data
-							}
-							break
+					if slices.Contains(tt.targetFiles, entryName) {
+						data, err := extractor.extractToMemory(archive)
+						if err != nil && !tt.wantError {
+							t.Fatalf("extractToMemory failed: %v", err)
+						}
+						if err == nil {
+							results[entryName] = data
 						}
 					}
 					do = archive.EnumNext()

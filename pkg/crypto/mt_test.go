@@ -9,7 +9,7 @@ func TestRNGMT_Deterministic(t *testing.T) {
 	rng1 := NewRNGMT(12345)
 	rng2 := NewRNGMT(12345)
 
-	for i := 0; i < 1000; i++ {
+	for i := range 1000 {
 		v1 := rng1.NextInt32()
 		v2 := rng2.NextInt32()
 		if v1 != v2 {
@@ -25,7 +25,7 @@ func TestRNGMT_DifferentSeeds(t *testing.T) {
 	rng2 := NewRNGMT(54321)
 
 	allSame := true
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		if rng1.NextInt32() != rng2.NextInt32() {
 			allSame = false
 			break
@@ -59,7 +59,7 @@ func TestRNGMT_SpecificValues(t *testing.T) {
 func TestRNGMT_LargeSequence(t *testing.T) {
 	// 大量の乱数を生成してもパニックしないことを確認
 	rng := NewRNGMT(42)
-	for i := 0; i < 100000; i++ {
+	for range 100000 {
 		_ = rng.NextInt32()
 	}
 }
@@ -78,7 +78,7 @@ func TestRNGMT_KnownSequence(t *testing.T) {
 
 	// 再度同じシードで初期化して同じ値が得られることを確認
 	rng2 := NewRNGMT(1)
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		got := rng2.NextInt32()
 		if got != vals[i] {
 			t.Errorf("index=%d: got=0x%08X, want=0x%08X", i, got, vals[i])

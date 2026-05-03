@@ -36,7 +36,7 @@ func (e *HinanawiEntry) GetCompressedSize() uint32 {
 }
 
 // Extract はエントリを抽出します
-func (e *HinanawiEntry) Extract(w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (e *HinanawiEntry) Extract(w io.Writer, callback func(string, any) bool, user any) bool {
 	if e.parent == nil {
 		return false
 	}
@@ -161,7 +161,7 @@ func (a *HinanawiArchive) deserializeList(listBuf []byte, listCount, listSize, f
 	listReader := bytes.NewReader(listBuf)
 	readOffset := uint32(0)
 
-	for i := uint32(0); i < listCount; i++ {
+	for i := range listCount {
 		var entry HinanawiEntry
 		var nameLen byte
 
@@ -272,7 +272,7 @@ func (a *HinanawiArchive) GetEntry() PBGArchiveEntry {
 }
 
 // Extract は現在のエントリを抽出します
-func (a *HinanawiArchive) Extract(w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (a *HinanawiArchive) Extract(w io.Writer, callback func(string, any) bool, user any) bool {
 	if a.curIndex < 0 || a.curIndex >= len(a.entries) {
 		return false
 	}
@@ -280,7 +280,7 @@ func (a *HinanawiArchive) Extract(w io.Writer, callback func(string, interface{}
 }
 
 // ExtractEntry は指定されたエントリを抽出します (C++版 Marisa/Hinanawi と同じ)
-func (a *HinanawiArchive) ExtractEntry(entry *HinanawiEntry, w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (a *HinanawiArchive) ExtractEntry(entry *HinanawiEntry, w io.Writer, callback func(string, any) bool, user any) bool {
 	if w == nil {
 		return false
 	}
@@ -325,7 +325,7 @@ func (a *HinanawiArchive) ExtractEntry(entry *HinanawiEntry, w io.Writer, callba
 }
 
 // ExtractAll はすべてのエントリを抽出します
-func (a *HinanawiArchive) ExtractAll(callback func(string, interface{}) bool, user interface{}) bool {
+func (a *HinanawiArchive) ExtractAll(callback func(string, any) bool, user any) bool {
 	if !a.EnumFirst() {
 		return true // Empty archive is success
 	}

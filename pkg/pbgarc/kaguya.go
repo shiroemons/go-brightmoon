@@ -70,7 +70,7 @@ func (e *KaguyaEntry) GetCompressedSize() uint32 {
 }
 
 // Extract はエントリを抽出します
-func (e *KaguyaEntry) Extract(w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (e *KaguyaEntry) Extract(w io.Writer, callback func(string, any) bool, user any) bool {
 	if e.parent == nil {
 		return false
 	}
@@ -350,7 +350,7 @@ func (a *KaguyaArchive) GetEntry() PBGArchiveEntry {
 }
 
 // Extract は現在のエントリを抽出します
-func (a *KaguyaArchive) Extract(w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (a *KaguyaArchive) Extract(w io.Writer, callback func(string, any) bool, user any) bool {
 	if a.curIndex < 0 || a.curIndex >= len(a.entries) {
 		return false
 	}
@@ -358,7 +358,7 @@ func (a *KaguyaArchive) Extract(w io.Writer, callback func(string, interface{}) 
 }
 
 // ExtractEntry は指定されたエントリを抽出します (C++版のロジックに合わせて修正)
-func (a *KaguyaArchive) ExtractEntry(entry *KaguyaEntry, w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+func (a *KaguyaArchive) ExtractEntry(entry *KaguyaEntry, w io.Writer, callback func(string, any) bool, user any) bool {
 	if w == nil {
 		return false
 	}
@@ -445,7 +445,7 @@ func (a *KaguyaArchive) ExtractEntry(entry *KaguyaEntry, w io.Writer, callback f
 }
 
 // ExtractAll はすべてのエントリを抽出します (変更なし)
-func (a *KaguyaArchive) ExtractAll(callback func(string, interface{}) bool, user interface{}) bool {
+func (a *KaguyaArchive) ExtractAll(callback func(string, any) bool, user any) bool {
 	if !a.EnumFirst() {
 		return true // 空のアーカイブは成功とする
 	}

@@ -41,10 +41,9 @@ func THCrypter(in io.Reader, out io.Writer, size int, key byte, step byte, block
 
 	for remainingSize > 0 && remainingLimit > 0 {
 		// このブロックで処理するサイズを決定
-		processBlockSize := block // 基本ブロックサイズ
-		if remainingSize < processBlockSize {
-			processBlockSize = remainingSize
-		}
+		processBlockSize := min(
+			// 基本ブロックサイズ
+			remainingSize, block)
 		if remainingLimit < processBlockSize {
 			processBlockSize = remainingLimit
 		}
@@ -58,7 +57,7 @@ func THCrypter(in io.Reader, out io.Writer, size int, key byte, step byte, block
 		// C++版の暗号化解除ロジック
 		pin := 0 // inBuf の読み取りインデックス
 		// processBlockSize 分だけ処理する
-		for j := 0; j < 2; j++ {
+		for j := range 2 {
 			pout := processBlockSize - j - 1 // outBuf の書き込みインデックス
 			// 内側ループの回数も processBlockSize に基づく
 			for i := 0; i < (processBlockSize-j+1)/2; i++ {

@@ -56,12 +56,12 @@ type PBGArchive interface {
 	// callback は進捗報告用のコールバック関数で、falseを返すと処理を中断します。
 	// user はコールバックに渡されるユーザーデータです。
 	// コールバックがnilの場合は進捗報告なしで抽出します。
-	Extract(w io.Writer, callback func(string, interface{}) bool, user interface{}) bool
+	Extract(w io.Writer, callback func(string, any) bool, user any) bool
 
 	// ExtractAll は全てのエントリを抽出します。
 	// callback は進捗報告用のコールバック関数で、falseを返すと処理を中断します。
 	// user はコールバックに渡されるユーザーデータです。
-	ExtractAll(callback func(string, interface{}) bool, user interface{}) bool
+	ExtractAll(callback func(string, any) bool, user any) bool
 }
 
 // PBGArchiveEntry はアーカイブ内のエントリを表すインターフェース
@@ -76,5 +76,5 @@ type PBGArchiveEntry interface {
 	GetCompressedSize() uint32
 
 	// Extract はエントリを抽出します
-	Extract(w io.Writer, callback func(string, interface{}) bool, user interface{}) bool
+	Extract(w io.Writer, callback func(string, any) bool, user any) bool
 }
