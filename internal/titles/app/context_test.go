@@ -221,7 +221,7 @@ func TestApp_Run_WithValue(t *testing.T) {
 	}
 
 	cfg := &config.Config{
-		OutputDir: ".",
+		OutputDir: t.TempDir(),
 	}
 	app := NewWithOptions(cfg, Options{
 		FileSystem: fs,

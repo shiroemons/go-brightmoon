@@ -251,7 +251,7 @@ make fmt
 # go vet
 make vet
 
-# golangci-lint v2.7.1 を Docker で実行
+# golangci-lint v2.12.1 を Docker で実行
 make lint
 
 # 依存関係を検証

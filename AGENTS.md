@@ -11,7 +11,7 @@ This is a Go module for Brightmoon, a CLI and library set for Touhou archive for
 - `make build-titles`: build the `titles_th` CLI to `./titles_th`.
 - `make test`: run all tests with verbose output and the race detector.
 - `make test-cover`: generate `coverage.out` and print coverage by function.
-- `make lint`: run `golangci-lint` v2.7.1 in Docker.
+- `make lint`: run `golangci-lint` v2.12.1 in Docker.
 - `make fmt` and `make vet`: run `go fmt ./...` and `go vet ./...`.
 - `make mod-tidy` / `make mod-verify`: maintain and verify module dependencies.
 

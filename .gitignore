@@ -1,6 +1,7 @@
 tmp/
 titles_th*.txt
 dist/
+!mise.toml
 
 # Build outputs
 brightmoon

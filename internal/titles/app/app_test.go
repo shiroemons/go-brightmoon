@@ -238,7 +238,11 @@ func TestApp_Run(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fs := tt.setupMock()
-			app := NewWithOptions(tt.config, Options{
+			cfg := *tt.config
+			if cfg.OutputDir == "." {
+				cfg.OutputDir = t.TempDir()
+			}
+			app := NewWithOptions(&cfg, Options{
 				FileSystem: fs,
 			})
 
@@ -276,7 +280,7 @@ func TestApp_Run_WithArchive(t *testing.T) {
 	cfg := &config.Config{
 		ArchivePath: "test.dat",
 		ArchiveType: 6,
-		OutputDir:   ".",
+		OutputDir:   t.TempDir(),
 	}
 
 	app := NewWithOptions(cfg, Options{
