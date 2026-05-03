@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/shiroemons/go-brightmoon/pkg/crypto"
 )
@@ -84,6 +85,7 @@ type KaguyaArchive struct {
 	curIndex int
 	cryprm   []CryptParam
 	archType int // 0: 永夜抄, 1: StB (弾幕アマノジャク)
+	mu       sync.Mutex
 }
 
 // 永夜抄用暗号化パラメータ（Type=4）
@@ -357,6 +359,9 @@ func (a *KaguyaArchive) Extract(w io.Writer, callback func(string, interface{}) 
 
 // ExtractEntry は指定されたエントリを抽出します (C++版のロジックに合わせて修正)
 func (a *KaguyaArchive) ExtractEntry(entry *KaguyaEntry, w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+	if w == nil {
+		return false
+	}
 	if callback != nil {
 		if !callback(entry.GetEntryName(), user) {
 			return false
@@ -365,6 +370,9 @@ func (a *KaguyaArchive) ExtractEntry(entry *KaguyaEntry, w io.Writer, callback f
 			return false
 		}
 	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
 	// ファイルポインタをエントリの開始位置に移動
 	if _, err := a.file.Seek(int64(entry.Offset), io.SeekStart); err != nil {
@@ -442,11 +450,12 @@ func (a *KaguyaArchive) ExtractAll(callback func(string, interface{}) bool, user
 		return true // 空のアーカイブは成功とする
 	}
 	success := true
-	for a.EnumNext() {
+	for {
 		if !a.Extract(io.Discard, callback, user) { // 出力先は Discard で良いか？ -> 用途による。通常はファイルに出力
 			success = false
-			// エラーが発生しても続行するかどうか？ C++版の挙動を確認する必要あり。
-			// ここではとりあえず続行する。
+		}
+		if !a.EnumNext() {
+			break
 		}
 	}
 

@@ -43,6 +43,25 @@ func TestTHBGMParser_ParseTHFmt(t *testing.T) {
 	}
 }
 
+func TestTHBGMParser_ParseTHFmt_NoNullTerminator(t *testing.T) {
+	parser := NewTHBGMParser()
+	testData := make([]byte, 52)
+	copy(testData[0:16], []byte("abcdefghijklmnop"))
+	testData[28] = 0x01
+
+	records, err := parser.ParseTHFmt(testData)
+	if err != nil {
+		t.Fatalf("ParseTHFmt failed: %v", err)
+	}
+
+	if len(records) != 1 {
+		t.Fatalf("Expected 1 record, got %d", len(records))
+	}
+	if records[0].FileName != "abcdefghijklmnop" {
+		t.Errorf("Expected full 16-byte filename, got %q", records[0].FileName)
+	}
+}
+
 func TestTHBGMParser_ParseMusicCmt(t *testing.T) {
 	parser := NewTHBGMParser()
 

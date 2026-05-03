@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -102,6 +103,7 @@ func main() {
 		}
 		os.Exit(1)
 	}
+	defer archive.Close()
 
 	// KaguyaArchiveの場合はタイプを設定 (openArchiveAuto内で処理されるため、ここでは不要になる)
 	/*
@@ -249,6 +251,7 @@ func openSpecificArchive(filename string, archiveType int) (pbgarc.PBGArchive, e
 		return nil, fmt.Errorf("%s としてアーカイブを開けませんでした: %w", targetName, err)
 	}
 	if !ok || !targetArchive.EnumFirst() {
+		_ = targetArchive.Close()
 		return nil, fmt.Errorf("%s としてアーカイブを開きましたが、無効か空のようです", targetName)
 	}
 
@@ -421,6 +424,7 @@ func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
 		} else {
 			// EnumFirst failed, record this
 			errorsDetected = append(errorsDetected, fmt.Sprintf("- %s: 開けましたが無効か空のようです (EnumFirst failed)", mapping.name))
+			_ = archive.Close()
 		}
 	}
 
@@ -432,6 +436,14 @@ func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
 			errorMsg += "\n検出時のエラー詳細:\n" + strings.Join(errorsDetected, "\n")
 		}
 		return nil, errors.New(errorMsg)
+	}
+
+	closeCandidates := func(keep pbgarc.PBGArchive) {
+		for _, c := range candidates {
+			if c.archive != keep {
+				_ = c.archive.Close()
+			}
+		}
 	}
 
 	var chosenArchive pbgarc.PBGArchive
@@ -464,6 +476,7 @@ func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
 		}
 
 		if guessErr != nil {
+			closeCandidates(nil)
 			return nil, fmt.Errorf("複数の形式候補が見つかりましたが、ファイル名から形式を特定できませんでした: %w。 `-t` オプションで形式を明示的に指定してください", guessErr)
 		}
 
@@ -480,6 +493,7 @@ func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
 		}
 
 		if !foundMatch {
+			closeCandidates(nil)
 			return nil, fmt.Errorf("複数の形式候補が見つかりましたが、ファイル名から推測された形式 (%s) が候補内にありません。 `-t` オプションで形式を明示的に指定してください", guessedFormat)
 		}
 	}
@@ -492,6 +506,7 @@ func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
 			if guessErr != nil {
 				errMsg += fmt.Sprintf(" (エラー: %v)", guessErr)
 			}
+			closeCandidates(nil)
 			return nil, fmt.Errorf("%s `-t` オプションでタイプを明示的に指定してください", errMsg)
 		}
 
@@ -501,6 +516,7 @@ func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
 				kaguyaArchive.SetArchiveType(guessedSubType)
 				fmt.Printf("Kaguya サブタイプを %d (ファイル名から自動設定) に設定しました。\n", guessedSubType)
 			} else {
+				closeCandidates(nil)
 				return nil, errors.New("内部エラー: KaguyaArchive への型アサーションに失敗しました")
 			}
 		} else if chosenMapping.baseType == 2 { // Kanako
@@ -510,16 +526,34 @@ func openArchiveAuto(filename string) (pbgarc.PBGArchive, error) {
 					kanakoArchive.SetArchiveType(guessedSubType)
 					fmt.Printf("Kanako サブタイプを %d (%s) (ファイル名から自動設定) に設定しました。\n", guessedSubType, options[guessedSubType])
 				} else {
+					closeCandidates(nil)
 					return nil, fmt.Errorf("内部エラー: ファイル名から推測された Kanako サブタイプ %d が無効です", guessedSubType)
 				}
 			} else {
+				closeCandidates(nil)
 				return nil, errors.New("内部エラー: KanakoArchive への型アサーションに失敗しました")
 			}
 		}
 	}
 
+	closeCandidates(chosenArchive)
 	fmt.Printf("%s アーカイブとして開きました: %s\n", chosenMapping.name, filename) // 最終的な形式名を表示
 	return chosenArchive, nil
+}
+
+func safeOutputPath(outDir, entryName string) (string, error) {
+	if entryName == "" {
+		return "", errors.New("空のエントリ名は抽出できません")
+	}
+
+	normalized := strings.ReplaceAll(entryName, "\\", "/")
+	cleaned := path.Clean(normalized)
+	if cleaned == "." || cleaned == ".." || strings.HasPrefix(cleaned, "../") ||
+		strings.HasPrefix(cleaned, "/") || strings.Contains(cleaned, ":") {
+		return "", fmt.Errorf("安全でないエントリ名です: %s", entryName)
+	}
+
+	return filepath.Join(outDir, filepath.FromSlash(cleaned)), nil
 }
 
 // アーカイブのリストを表示
@@ -650,7 +684,16 @@ func extractArchiveParallel(archive pbgarc.PBGArchive, outDir string, numWorkers
 			foundFilesInSet[entryName] = true // 抽出対象として見つかったことを記録
 		}
 
-		outPath := filepath.Join(outDir, entryName)
+		outPath, pathErr := safeOutputPath(outDir, entryName)
+		if pathErr != nil {
+			ctx.results <- extractResult{
+				entryName: entryName,
+				success:   false,
+				err:       pathErr,
+			}
+			do = archive.EnumNext()
+			continue
+		}
 
 		// ディレクトリを作成 (エラーは無視しない方が良い)
 		if dir := filepath.Dir(outPath); dir != "." {
@@ -664,6 +707,15 @@ func extractArchiveParallel(archive pbgarc.PBGArchive, outDir string, numWorkers
 
 		// ジョブをキューに追加
 		entry := archive.GetEntry()
+		if entry == nil {
+			ctx.results <- extractResult{
+				entryName: entryName,
+				success:   false,
+				err:       errors.New("エントリ取得に失敗しました"),
+			}
+			do = archive.EnumNext()
+			continue
+		}
 		ctx.jobs <- extractJob{
 			entry:   entry,
 			outPath: outPath,
@@ -716,8 +768,8 @@ func extractWorker(ctx *extractContext) {
 
 		// 抽出
 		success := job.entry.Extract(writer, nil, nil)
-		writer.Flush()
-		outFile.Close()
+		flushErr := writer.Flush()
+		closeErr := outFile.Close()
 
 		if !success {
 			os.Remove(job.outPath)
@@ -725,6 +777,18 @@ func extractWorker(ctx *extractContext) {
 				entryName: job.entry.GetEntryName(),
 				success:   false,
 				err:       fmt.Errorf("extraction failed"),
+			}
+		} else if flushErr != nil {
+			ctx.results <- extractResult{
+				entryName: job.entry.GetEntryName(),
+				success:   false,
+				err:       flushErr,
+			}
+		} else if closeErr != nil {
+			ctx.results <- extractResult{
+				entryName: job.entry.GetEntryName(),
+				success:   false,
+				err:       closeErr,
 			}
 		} else {
 			ctx.results <- extractResult{
@@ -771,7 +835,15 @@ func extractArchiveSequential(archive pbgarc.PBGArchive, outDir string, filesToE
 			foundFilesInSet[entryName] = true // 抽出対象として見つかったことを記録
 		}
 
-		outPath := filepath.Join(outDir, entryName)
+		outPath, pathErr := safeOutputPath(outDir, entryName)
+		if pathErr != nil {
+			fmt.Fprintf(os.Stderr, "安全でないエントリ名のため抽出をスキップします: %s - %v\n", entryName, pathErr)
+			if firstError == nil {
+				firstError = pathErr
+			}
+			do = archive.EnumNext()
+			continue
+		}
 
 		// ディレクトリを作成
 		if dir := filepath.Dir(outPath); dir != "." {

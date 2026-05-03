@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"sync"
 )
 
 // SuicaEntry はSuicaアーカイブ内のエントリを表します
@@ -44,6 +45,7 @@ type SuicaArchive struct {
 	file     *os.File
 	entries  []SuicaEntry
 	curIndex int
+	mu       sync.Mutex
 }
 
 // NewSuicaArchive は新しいSuicaArchiveを作成します
@@ -228,6 +230,9 @@ func (a *SuicaArchive) Extract(w io.Writer, callback func(string, interface{}) b
 
 // ExtractEntry は指定されたエントリを抽出します
 func (a *SuicaArchive) ExtractEntry(entry *SuicaEntry, w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+	if w == nil {
+		return false
+	}
 	if callback != nil {
 		if !callback(entry.GetEntryName(), user) {
 			return false
@@ -236,6 +241,9 @@ func (a *SuicaArchive) ExtractEntry(entry *SuicaEntry, w io.Writer, callback fun
 			return false
 		}
 	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
 	// ファイルポインタを移動
 	if _, err := a.file.Seek(int64(entry.Offset), io.SeekStart); err != nil {
@@ -280,6 +288,19 @@ func (a *SuicaArchive) ExtractEntry(entry *SuicaEntry, w io.Writer, callback fun
 
 // ExtractAll は全てのエントリを抽出します
 func (a *SuicaArchive) ExtractAll(callback func(string, interface{}) bool, user interface{}) bool {
-	// 未実装
-	return false
+	if !a.EnumFirst() {
+		return true
+	}
+
+	success := true
+	for {
+		if !a.Extract(io.Discard, callback, user) {
+			success = false
+		}
+		if !a.EnumNext() {
+			break
+		}
+	}
+
+	return success
 }

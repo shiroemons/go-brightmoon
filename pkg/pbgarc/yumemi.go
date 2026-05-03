@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/shiroemons/go-brightmoon/pkg/crypto"
 )
@@ -54,6 +55,7 @@ type YumemiArchive struct {
 	file     *os.File
 	entries  []YumemiEntry
 	curIndex int
+	mu       sync.Mutex
 }
 
 // NewYumemiArchive は新しいYumemiArchiveを作成します
@@ -334,6 +336,9 @@ func (a *YumemiArchive) Extract(w io.Writer, callback func(string, interface{}) 
 
 // ExtractEntry は指定されたエントリを抽出します
 func (a *YumemiArchive) ExtractEntry(entry *YumemiEntry, w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+	if w == nil {
+		return false
+	}
 	if callback != nil {
 		if !callback(entry.GetEntryName(), user) {
 			return false
@@ -342,6 +347,9 @@ func (a *YumemiArchive) ExtractEntry(entry *YumemiEntry, w io.Writer, callback f
 			return false
 		}
 	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
 	// ファイルポインタを移動
 	if _, err := a.file.Seek(int64(entry.Offset), io.SeekStart); err != nil {
@@ -373,8 +381,21 @@ func (a *YumemiArchive) ExtractEntry(entry *YumemiEntry, w io.Writer, callback f
 
 // ExtractAll は全てのエントリを抽出します
 func (a *YumemiArchive) ExtractAll(callback func(string, interface{}) bool, user interface{}) bool {
-	// 未実装
-	return false
+	if !a.EnumFirst() {
+		return true
+	}
+
+	success := true
+	for {
+		if !a.Extract(io.Discard, callback, user) {
+			success = false
+		}
+		if !a.EnumNext() {
+			break
+		}
+	}
+
+	return success
 }
 
 // 暗号化解除関数

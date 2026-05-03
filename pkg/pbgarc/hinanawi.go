@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/shiroemons/go-brightmoon/pkg/crypto"
 )
@@ -48,6 +49,7 @@ type HinanawiArchive struct {
 	file     *os.File
 	entries  []HinanawiEntry
 	curIndex int
+	mu       sync.Mutex
 }
 
 // NewHinanawiArchive は新しいHinanawiArchiveを作成します
@@ -279,6 +281,9 @@ func (a *HinanawiArchive) Extract(w io.Writer, callback func(string, interface{}
 
 // ExtractEntry は指定されたエントリを抽出します (C++版 Marisa/Hinanawi と同じ)
 func (a *HinanawiArchive) ExtractEntry(entry *HinanawiEntry, w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+	if w == nil {
+		return false
+	}
 	if callback != nil {
 		if !callback(entry.GetEntryName(), user) {
 			return false
@@ -287,6 +292,9 @@ func (a *HinanawiArchive) ExtractEntry(entry *HinanawiEntry, w io.Writer, callba
 			return false
 		}
 	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
 	// データを読み込み
 	data := make([]byte, entry.Size)
@@ -323,10 +331,8 @@ func (a *HinanawiArchive) ExtractAll(callback func(string, interface{}) bool, us
 	}
 	success := true
 	for {
-		// TODO: Implement proper extraction target, not io.Discard
 		if !a.Extract(io.Discard, callback, user) {
 			success = false
-			// Continue on error?
 		}
 		if !a.EnumNext() {
 			break // ループ終了

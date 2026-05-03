@@ -32,6 +32,9 @@ func (p *THBGMParser) ParseTHFmt(data []byte) ([]*models.Record, error) {
 		pcmFmt := data[offset : offset+52]
 		fileBytes := pcmFmt[0:16]
 		n := bytes.IndexByte(fileBytes, 0)
+		if n < 0 {
+			n = len(fileBytes)
+		}
 		file := string(fileBytes[:n])
 		if file != "" {
 			start := binary.LittleEndian.Uint32(pcmFmt[16:])

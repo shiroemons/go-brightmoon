@@ -84,6 +84,7 @@ func (e *Extractor) openSpecificArchive(filename string, archiveType int) (pbgar
 		return nil, fmt.Errorf("%s としてアーカイブを開けませんでした: %w", targetName, err)
 	}
 	if !ok || !targetArchive.EnumFirst() {
+		_ = targetArchive.Close()
 		return nil, fmt.Errorf("%s としてアーカイブを開きましたが、無効か空のようです", targetName)
 	}
 
@@ -135,11 +136,20 @@ func (e *Extractor) openArchiveAuto(filename string) (pbgarc.PBGArchive, error) 
 		if archive.EnumFirst() {
 			e.logger.Printf("- %s: 候補として検出\n", mapping.Name)
 			candidates = append(candidates, archiveCandidate{mapping.Name, archive, mapping})
+		} else {
+			_ = archive.Close()
 		}
 	}
 
 	if len(candidates) == 0 {
 		return nil, errors.New("対応するアーカイブ形式が見つかりませんでした")
+	}
+	closeCandidates := func(keep pbgarc.PBGArchive) {
+		for _, c := range candidates {
+			if c.archive != keep {
+				_ = c.archive.Close()
+			}
+		}
 	}
 
 	// ファイル名からタイプを推測
@@ -181,14 +191,17 @@ func (e *Extractor) openArchiveAuto(filename string) (pbgarc.PBGArchive, error) 
 			ok, err := newArchive.Open(filename)
 			if err != nil || !ok || !newArchive.EnumFirst() {
 				e.logger.Printf("再初期化に失敗しました: %v\n", err)
+				_ = newArchive.Close()
 				// 元のアーカイブを返す
 			} else {
 				e.logger.Printf("再初期化に成功しました\n")
+				closeCandidates(nil)
 				return newArchive, nil // 成功したら新しいアーカイブを返す
 			}
 		}
 	}
 
+	closeCandidates(chosenArchive)
 	return chosenArchive, nil
 }
 

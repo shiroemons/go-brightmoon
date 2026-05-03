@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/shiroemons/go-brightmoon/pkg/crypto"
 )
@@ -49,6 +50,7 @@ type MarisaArchive struct {
 	file     *os.File
 	entries  []MarisaEntry
 	curIndex int
+	mu       sync.Mutex
 }
 
 // NewMarisaArchive は新しいMarisaArchiveを作成します
@@ -280,6 +282,9 @@ func (a *MarisaArchive) Extract(w io.Writer, callback func(string, interface{}) 
 
 // ExtractEntry は指定されたエントリを抽出します (C++版のロジックに合わせて修正)
 func (a *MarisaArchive) ExtractEntry(entry *MarisaEntry, w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+	if w == nil {
+		return false
+	}
 	if callback != nil {
 		if !callback(entry.GetEntryName(), user) {
 			return false
@@ -288,6 +293,9 @@ func (a *MarisaArchive) ExtractEntry(entry *MarisaEntry, w io.Writer, callback f
 			return false
 		}
 	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
 	// データを読み込み
 	data := make([]byte, entry.Size)
@@ -326,10 +334,8 @@ func (a *MarisaArchive) ExtractAll(callback func(string, interface{}) bool, user
 	}
 	success := true
 	for {
-		// TODO: Implement proper extraction target, not io.Discard
 		if !a.Extract(io.Discard, callback, user) {
 			success = false
-			// Continue on error?
 		}
 		if !a.EnumNext() {
 			break // ループ終了

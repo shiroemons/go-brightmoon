@@ -52,6 +52,7 @@ func (e *Extractor) ExtractFiles(ctx context.Context, archivePath string, archiv
 	if err != nil {
 		return nil, err
 	}
+	defer archive.Close()
 
 	// ファイルを検索して展開
 	findCount := 0

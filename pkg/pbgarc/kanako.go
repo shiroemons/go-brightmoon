@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/shiroemons/go-brightmoon/pkg/crypto"
 )
@@ -80,6 +81,7 @@ type KanakoArchive struct {
 	curIndex int
 	cryprm   []KanakoCryptParam
 	archType int
+	mu       sync.Mutex
 }
 
 // 風神録用暗号化パラメータ
@@ -382,6 +384,9 @@ func (a *KanakoArchive) Extract(w io.Writer, callback func(string, interface{}) 
 
 // ExtractEntry は指定されたエントリを抽出します
 func (a *KanakoArchive) ExtractEntry(entry *KanakoEntry, w io.Writer, callback func(string, interface{}) bool, user interface{}) bool {
+	if w == nil {
+		return false
+	}
 	if callback != nil {
 		if !callback(entry.GetEntryName(), user) {
 			return false
@@ -390,6 +395,9 @@ func (a *KanakoArchive) ExtractEntry(entry *KanakoEntry, w io.Writer, callback f
 			return false
 		}
 	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
 	// ファイルポインタを移動
 	if _, err := a.file.Seek(int64(entry.Offset), io.SeekStart); err != nil {
@@ -459,7 +467,7 @@ func (a *KanakoArchive) ExtractEntry(entry *KanakoEntry, w io.Writer, callback f
 func (a *KanakoArchive) ExtractAll(callback func(string, interface{}) bool, user interface{}) bool {
 	success := true
 	for i := range a.entries {
-		if !a.ExtractEntry(&a.entries[i], nil, callback, user) {
+		if !a.ExtractEntry(&a.entries[i], io.Discard, callback, user) {
 			success = false
 			break
 		}
